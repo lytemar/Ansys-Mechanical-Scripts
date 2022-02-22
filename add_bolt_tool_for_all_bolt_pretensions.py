@@ -80,12 +80,8 @@ with Transaction():         # Suppress GUI update until complete to speed the pr
     # Create new bolt tools and collect in a list
     bolt_tools = [createBoltTool(id, boltPretensionIDs, name, DISP_TIMES) for id, name in zip(boltPretensionIDs, boltPretensionNames)]
     
-# IDs for the bolt tools
-# bolt_tool_IDs = [i.ObjectId for i in bolt_tools]
-
-# All folders in the Solution branch
-# sol_folders = analysis.GetChildren(DataModelObjectCategory.TreeGroupingFolder, True)
-# sol_folders_names = [i.Name for i in sol_folders]
-
+# Group the bolt tools into one folder
+group = Tree.Group(bolt_tools)
+group.Name = "Bolt Tools"
 
 #print(str(time.time() - StartTime))
