@@ -108,4 +108,6 @@ with Transaction():         # Suppress GUI update until complete to speed the pr
 group = Tree.Group(contact_tools)
 group.Name = "Contact Tools"
 
+Tree.Activate([analysis.Solution])
+
 #print(str(time.time() - StartTime))

@@ -84,4 +84,6 @@ with Transaction():         # Suppress GUI update until complete to speed the pr
 group = Tree.Group(bolt_tools)
 group.Name = "Bolt Tools"
 
+Tree.Activate([analysis.Solution])
+
 #print(str(time.time() - StartTime))

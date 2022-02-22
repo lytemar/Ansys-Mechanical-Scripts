@@ -69,3 +69,5 @@ for i, c in enumerate(trackers.keys()):
 # Place the tracker folders into one common folder
 grps = Tree.Group(groups)
 grps.Name = "Contact Trackers"
+
+Tree.Activate([analysis.Solution])
