@@ -1,6 +1,6 @@
 """
 Add contact trackers to Solution Information for all nonlinear contacts
-==================================================================
+=======================================================================
 """
 
 model = ExtAPI.DataModel.Project.Model
@@ -15,41 +15,52 @@ contacts = [c for c in contacts if c.ContactType not in linear_contacts]
 supp_conts = [c for c in contacts if c.Suppressed]
 
 # Create contact trackers
-with Transaction():         # Suppress GUI update until complete to speed the process
+trackers = {}
+with Transaction(True):         # Suppress GUI update until complete to speed the process
     for c in contacts:
+        trackers[c] = []
+        
+        # Create Number Contacting tracker
         _ = sol_info.AddNumberContacting()
         _.ContactRegion = c
-        _.RenameBasedOnDefinition()
-    
-    for c in contacts:
+        trackers[c].append(_)
+        
+        # Create Contact Pressure tracker
         _ = sol_info.AddContactPressure()
         _.ContactRegion = c
-        _.RenameBasedOnDefinition()
+        trackers[c].append(_)
         
-    for c in contacts:
+        # Create Penetration tracker
         _ = sol_info.AddPenetration()
         _.ContactRegion = c
-        _.RenameBasedOnDefinition()
+        trackers[c].append(_)
     
-    for c in contacts:
+        # Create Max Normal Stiffness tracker
         _ = sol_info.AddContactMaximumNormalStiffness()
         _.ContactRegion = c
-        _.RenameBasedOnDefinition()
+        trackers[c].append(_)
         
-    for c in contacts:
+        # Create Stabilization Energy tracker
         _ = sol_info.AddStabilizationEnergy()
         _.ContactRegion = c
-        _.RenameBasedOnDefinition()
+        trackers[c].append(_)
         
-    for c in contacts:
+        # Create Force Convergence tracker
         _ = sol_info.AddContactPairForceConvergenceNorm()
         _.ContactRegion = c
-        _.RenameBasedOnDefinition()
+        trackers[c].append(_)
     
-    for c in contacts:
+        # Create Gap tracker
         _ = sol_info.AddGap()
         _.ContactRegion = c
-        _.RenameBasedOnDefinition()
+        trackers[c].append(_)
+        
+# Rename the trackers by definition
+for c, tr in trackers.items():
+    for t in tr:
+        t.RenameBasedOnDefinition()
 
-
-# TODO:  Add contact trackers for each contact into its own folder
+# Place the trackers into grouping folders for each contact
+for c in trackers.keys():
+    group = Tree.Group(trackers[c])
+    group.Name = "Contact - " + c.Name
