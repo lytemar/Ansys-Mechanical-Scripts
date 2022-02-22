@@ -104,4 +104,8 @@ with Transaction():         # Suppress GUI update until complete to speed the pr
     contact_tools = [createContactTool(id, contIDs, name, DISP_TIMES) for id, name in zip(contIDs, contNames)]
     # contact_tools = [createContactTool(id, contIDs, name, DISP_TIMES) for id, name,c  in zip(contIDs, contNames, contacts) if not c.Suppressed]
 
+# Put all contact tools into a group folder
+group = Tree.Group(contact_tools)
+group.Name = "Contact Tools"
+
 #print(str(time.time() - StartTime))
