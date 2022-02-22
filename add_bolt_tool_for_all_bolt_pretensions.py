@@ -69,7 +69,7 @@ def createBoltTool(boltPretensionID, lstboltPretensionID, boltPretensionName, di
         adjustment.DisplayTime = time
         adjustment.Name = "Adjustment - " + str(time)
         
-        # WrokingLoad
+        # Working load
         working_load = bolt_tool.AddWorkingLoad()
         working_load.DisplayTime = time
         working_load.Name = "Working Load - " + str(time)
@@ -81,11 +81,11 @@ with Transaction():         # Suppress GUI update until complete to speed the pr
     bolt_tools = [createBoltTool(id, boltPretensionIDs, name, DISP_TIMES) for id, name in zip(boltPretensionIDs, boltPretensionNames)]
     
 # IDs for the bolt tools
-bolt_tool_IDs = [i.ObjectId for i in bolt_tools]
+# bolt_tool_IDs = [i.ObjectId for i in bolt_tools]
 
 # All folders in the Solution branch
-sol_folders = analysis.GetChildren(DataModelObjectCategory.TreeGroupingFolder, True)
-sol_folders_names = [i.Name for i in sol_folders]
+# sol_folders = analysis.GetChildren(DataModelObjectCategory.TreeGroupingFolder, True)
+# sol_folders_names = [i.Name for i in sol_folders]
 
 
 #print(str(time.time() - StartTime))
