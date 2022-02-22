@@ -50,3 +50,6 @@ with Transaction():         # Suppress GUI update until complete to speed the pr
         _ = sol_info.AddGap()
         _.ContactRegion = c
         _.RenameBasedOnDefinition()
+
+
+# TODO:  Add contact trackers for each contact into its own folder
