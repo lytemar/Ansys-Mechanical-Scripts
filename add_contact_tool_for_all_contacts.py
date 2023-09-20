@@ -11,6 +11,7 @@ createContactTool
 #StartTime = time.time()
 
 model = ExtAPI.DataModel.Project.Model
+analyses = model.Analyses
 analysis = model.Analyses[0]
 analysis_settings = analysis.AnalysisSettings
 n = analysis_settings.NumberOfSteps             # number of time steps
