@@ -61,7 +61,7 @@ for c, tr in trackers.items():
         t.RenameBasedOnDefinition()
 
 # Place the trackers into grouping folders for each contact
-groups =[]
+groups = []
 for i, c in enumerate(trackers.keys()):
     groups.append(Tree.Group(trackers[c]))
     groups[i].Name = "Contact - " + c.Name
