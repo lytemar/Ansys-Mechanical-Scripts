@@ -2,10 +2,6 @@
 Add beam probes to the solution branch for all circular beam connections
 ========================================================================
 
-Functions
----------
-createBeamProbe
-    Create a beam probe for a single circular beam connection boundary condition
 """
 
 analysisNumber = 0
