@@ -10,12 +10,19 @@ cmd = 'returnValue(GetUserFilesDirectory())'
 user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 
 ################### Parameters ########################
-analysisNumbers = [0, 1]       # List of analysis systems to apply this script
+analysisNumbers = [0]       # List of analysis systems to apply this script
 
 #  Place units in Ansys Mechanical format for output conversion
-forceUnit = '[lbf]'           # Desired force output unit
-stressUnit = '[psi]'          # Desired stress output unit
-momentUnit = '[lbf in]'       # Desired moment/torque output unit
+lengthUnit = 'in'           # Desired length output unit
+areaUnit = '[' + lengthUnit + '^2]'    # Area Unit
+forceUnit = 'lbf'           # Desired force output unit
+stressUnit = '[' + forceUnit + ' ' + lengthUnit + '^-2]'         # Desired stress output unit
+momentUnit = '[' + forceUnit + ' ' + lengthUnit + ']'               # Desired moment/torque output unit
+
+lengthUnit = '[' + lengthUnit + ']'
+forceUnit = '[' + forceUnit + ']'
+
+
 ################### End Parameters ########################
 
 def writeCSV(filename, data, cols):
@@ -84,6 +91,8 @@ for a in analysisNumbers:
     data = {}
     cols = ['Results Probe Name',
             'Beam Connection Name',
+            'Radius ' + lengthUnit,
+            'Cross-Sectional Area ' + areaUnit,
             'Axial Force ' + forceUnit,
             'Torque ' + momentUnit,
             'Maximum Shear Force ' + forceUnit,
@@ -95,15 +104,17 @@ for a in analysisNumbers:
             'Maximum Equivalent Stress ' + stressUnit]
     data[cols[0]] = [p.Name for p in beam_probes]
     data[cols[1]] = [p.Name for p in beam_conns]
-    data[cols[2]] = [f/Quantity('1 ' + forceUnit) for f in afs]
-    data[cols[3]] = [t/Quantity('1 ' + momentUnit) for t in tqs]
-    data[cols[4]] = [f/Quantity('1 ' + forceUnit) for f in sfs]
-    data[cols[5]] = [mom/Quantity('1 ' + momentUnit) for mom in moms]
-    data[cols[6]] = [s/Quantity('1 ' + stressUnit) for s in axStrs]
-    data[cols[7]] = [s/Quantity('1 ' + stressUnit) for s in bndStrs]
-    data[cols[8]] = [s/Quantity('1 ' + stressUnit) for s in torStrs]
-    data[cols[9]] = [s/Quantity('1 ' + stressUnit) for s in shStrs]
-    data[cols[10]] = [s/Quantity('1 ' + stressUnit) for s in eqvStrs]
+    data[cols[2]] = [r/Quantity('1 ' + lengthUnit) for r in rads]
+    data[cols[3]] = [a/Quantity('1 ' + areaUnit) for a in areas]
+    data[cols[4]] = [f/Quantity('1 ' + forceUnit) for f in afs]
+    data[cols[5]] = [t/Quantity('1 ' + momentUnit) for t in tqs]
+    data[cols[6]] = [f/Quantity('1 ' + forceUnit) for f in sfs]
+    data[cols[7]] = [mom/Quantity('1 ' + momentUnit) for mom in moms]
+    data[cols[8]] = [s/Quantity('1 ' + stressUnit) for s in axStrs]
+    data[cols[9]] = [s/Quantity('1 ' + stressUnit) for s in bndStrs]
+    data[cols[10]] = [s/Quantity('1 ' + stressUnit) for s in torStrs]
+    data[cols[11]] = [s/Quantity('1 ' + stressUnit) for s in shStrs]
+    data[cols[12]] = [s/Quantity('1 ' + stressUnit) for s in eqvStrs]
     
     x = datetime.datetime.now()
     
