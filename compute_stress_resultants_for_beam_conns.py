@@ -83,9 +83,14 @@ for a in analysisNumbers:
     # Stress resultants
     axStrs = [af/area for af, area in zip(afs, areas)]          # Axial stresses
     bndStrs = [mom*rad/I for mom, rad, I in zip(moms, rads, Is)]   # Bending stresses
+    dirStrs = [a + b for a, b in zip(axStrs, bndStrs)]              # Direct stresses
     torStrs = [tq*rad/J for tq, rad, J in zip(tqs, rads, Js)]   # Torsional stresses
-    shStrs = [sf/area*4/3 for sf, area in zip(sfs, areas)]   # Shear stresses
-    eqvStrs = [((ast+bs)**2 + 3*(ss**2 + ts**2))**(0.5) for ast, bs, ss, ts in zip(axStrs, bndStrs, shStrs, torStrs)]     # Equivalent stresses
+    shStrs = [sf/area*4.0/3 for sf, area in zip(sfs, areas)]   # Shear stresses
+    tau_xys = [max(abs(t+s), abs(t-s)) for t, s in zip(torStrs, shStrs)]   # Maximum tau_xy stresses
+    sig_p1s = [d/2 + ((d/2)**2 + txy**2)**(0.5) for d, txy in zip(dirStrs, tau_xys)]   # Maximum principal stresses
+    sig_p2s = [d/2 - ((d/2)**2 + txy**2)**(0.5) for d, txy in zip(dirStrs, tau_xys)]   # Minimum principal stresses
+    tauMaxStrs = [1/2.0*(s1 - s2) for s1, s2 in zip(sig_p1s, sig_p2s)]    # Maximum Shear Stress
+    eqvStrs = [(s1**2 + s2**2 - s1*s2)**(0.5) for s1, s2, in zip(sig_p1s, sig_p2s)]     # Equivalent stresses
     
     # Create data dictionary to written to output csv file
     data = {}
@@ -97,11 +102,14 @@ for a in analysisNumbers:
             'Torque ' + momentUnit,
             'Maximum Shear Force ' + forceUnit,
             'Maximum Bending Moment ' + momentUnit,
+            'Maximum Equivalent Stress ' + stressUnit,
             'Axial Stress ' + stressUnit,
             'Maximum Bending Stress ' + stressUnit,
+            'Maximum Direct Stress ' + stressUnit,
             'Torsional Stress ' + stressUnit,
-            'Maximum Shear Stress ' + stressUnit,
-            'Maximum Equivalent Stress ' + stressUnit]
+            'Maximum Principal Stress ' + stressUnit,
+            'Minimum Principal Stress ' + stressUnit,
+            'Maximum Shear Stress ' + stressUnit]
     data[cols[0]] = [p.Name for p in beam_probes]
     data[cols[1]] = [p.Name for p in beam_conns]
     data[cols[2]] = [r/Quantity('1 ' + lengthUnit) for r in rads]
@@ -110,11 +118,15 @@ for a in analysisNumbers:
     data[cols[5]] = [t/Quantity('1 ' + momentUnit) for t in tqs]
     data[cols[6]] = [f/Quantity('1 ' + forceUnit) for f in sfs]
     data[cols[7]] = [mom/Quantity('1 ' + momentUnit) for mom in moms]
-    data[cols[8]] = [s/Quantity('1 ' + stressUnit) for s in axStrs]
-    data[cols[9]] = [s/Quantity('1 ' + stressUnit) for s in bndStrs]
-    data[cols[10]] = [s/Quantity('1 ' + stressUnit) for s in torStrs]
-    data[cols[11]] = [s/Quantity('1 ' + stressUnit) for s in shStrs]
-    data[cols[12]] = [s/Quantity('1 ' + stressUnit) for s in eqvStrs]
+    data[cols[8]] = [s/Quantity('1 ' + stressUnit) for s in eqvStrs]
+    data[cols[9]] = [s/Quantity('1 ' + stressUnit) for s in axStrs]
+    data[cols[10]] = [s/Quantity('1 ' + stressUnit) for s in bndStrs]
+    data[cols[11]] = [s/Quantity('1 ' + stressUnit) for s in dirStrs]
+    data[cols[12]] = [s/Quantity('1 ' + stressUnit) for s in torStrs]
+    data[cols[13]] = [s/Quantity('1 ' + stressUnit) for s in sig_p1s]
+    data[cols[14]] = [s/Quantity('1 ' + stressUnit) for s in sig_p2s]
+    data[cols[15]] = [s/Quantity('1 ' + stressUnit) for s in tauMaxStrs]
+    
     
     x = datetime.datetime.now()
     
