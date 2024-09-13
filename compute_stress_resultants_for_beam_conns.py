@@ -81,14 +81,13 @@ for a in analysisNumbers:
     moms = [max(abs(mi), abs(mj)) for mi, mj in zip(mis, mjs)]
     
     # Stress resultants
-    axStrs = [af/area for af, area in zip(afs, areas)]          # Axial stresses
+    dirStrs = [af/area for af, area in zip(afs, areas)]          # Direct stresses
     bndStrs = [mom*rad/I for mom, rad, I in zip(moms, rads, Is)]   # Bending stresses
-    dirStrs = [a + b for a, b in zip(axStrs, bndStrs)]              # Direct stresses
+    combStrs = [a + b for a, b in zip(dirStrs, bndStrs)]              # Combined stresses
     torStrs = [tq*rad/J for tq, rad, J in zip(tqs, rads, Js)]   # Torsional stresses
     shStrs = [sf/area*4.0/3 for sf, area in zip(sfs, areas)]   # Shear stresses
-    tau_xys = [max(abs(t+s), abs(t-s)) for t, s in zip(torStrs, shStrs)]   # Maximum tau_xy stresses
-    sig_p1s = [d/2 + ((d/2)**2 + txy**2)**(0.5) for d, txy in zip(dirStrs, tau_xys)]   # Maximum principal stresses
-    sig_p2s = [d/2 - ((d/2)**2 + txy**2)**(0.5) for d, txy in zip(dirStrs, tau_xys)]   # Minimum principal stresses
+    sig_p1s = [d/2 + ((d/2)**2 + t**2)**(0.5) for d, t in zip(combStrs, torStrs)]   # Maximum principal stresses
+    sig_p2s = [d/2 - ((d/2)**2 + t**2)**(0.5) for d, t in zip(combStrs, torStrs)]   # Minimum principal stresses
     tauMaxStrs = [1/2.0*(s1 - s2) for s1, s2 in zip(sig_p1s, sig_p2s)]    # Maximum Shear Stress
     eqvStrs = [(s1**2 + s2**2 - s1*s2)**(0.5) for s1, s2, in zip(sig_p1s, sig_p2s)]     # Equivalent stresses
     
@@ -103,9 +102,9 @@ for a in analysisNumbers:
             'Maximum Shear Force ' + forceUnit,
             'Maximum Bending Moment ' + momentUnit,
             'Maximum Equivalent Stress ' + stressUnit,
-            'Axial Stress ' + stressUnit,
+            'Direct Stress ' + stressUnit,
             'Maximum Bending Stress ' + stressUnit,
-            'Maximum Direct Stress ' + stressUnit,
+            'Maximum Combined Stress ' + stressUnit,
             'Torsional Stress ' + stressUnit,
             'Maximum Principal Stress ' + stressUnit,
             'Minimum Principal Stress ' + stressUnit,
@@ -119,9 +118,9 @@ for a in analysisNumbers:
     data[cols[6]] = [f/Quantity('1 ' + forceUnit) for f in sfs]
     data[cols[7]] = [mom/Quantity('1 ' + momentUnit) for mom in moms]
     data[cols[8]] = [s/Quantity('1 ' + stressUnit) for s in eqvStrs]
-    data[cols[9]] = [s/Quantity('1 ' + stressUnit) for s in axStrs]
+    data[cols[9]] = [s/Quantity('1 ' + stressUnit) for s in dirStrs]
     data[cols[10]] = [s/Quantity('1 ' + stressUnit) for s in bndStrs]
-    data[cols[11]] = [s/Quantity('1 ' + stressUnit) for s in dirStrs]
+    data[cols[11]] = [s/Quantity('1 ' + stressUnit) for s in combStrs]
     data[cols[12]] = [s/Quantity('1 ' + stressUnit) for s in torStrs]
     data[cols[13]] = [s/Quantity('1 ' + stressUnit) for s in sig_p1s]
     data[cols[14]] = [s/Quantity('1 ' + stressUnit) for s in sig_p2s]
