@@ -13,7 +13,7 @@ user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
 
 ################### Parameters ########################
-analysisNumbers = [0]       # List of analysis systems to apply this script
+analysisNumbers = [3]       # List of analysis systems to apply this script
 
 #  Place units in Ansys Mechanical format for output conversion
 lengthUnitStr = 'in'            # Desired length output unit
@@ -95,7 +95,6 @@ for a in analysisNumbers:
     timeUnit = '[' + timeUnitStr + ']'
     number_sets = model.TimeFreqSupport.NumberSets      # Number of time steps
     timeIds = range(1, number_sets + 1)                 # List of time steps
-    #timeSteps = [t*Quantity('1 ' + timeUnit) for t in all_times]
     
     # Read mesh in results file
     mesh_op = dpf.operators.mesh.mesh_provider() 
@@ -187,7 +186,7 @@ for a in analysisNumbers:
             torStr_J = TQ_J * beam_dat[eid]['rad'] / beam_dat[eid]['J']
             eqvStr_I = computeEquivStress(combStr_I, torStr_I)
             eqvStr_J = computeEquivStress(combStr_J, torStr_J)
-            if abs(eqvStrs_I) >= abs(eqvStrs_J):
+            if abs(eqvStr_I) >= abs(eqvStr_J):
                 beam_dat[eid]['Bending Moment'].append(M_I)
                 beam_dat[eid]['Torque'].append(TQ_I)
                 beam_dat[eid]['Bending Stress'].append(bendStr_I)
