@@ -13,7 +13,7 @@ user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
 
 ################### Parameters ########################
-analysisNumbers = [3]       # List of analysis systems to apply this script
+analysisNumbers = [0]       # List of analysis systems to apply this script
 
 #  Place units in Ansys Mechanical format for output conversion
 lengthUnitStr = 'in'            # Desired length output unit
@@ -95,6 +95,7 @@ for a in analysisNumbers:
     timeUnit = '[' + timeUnitStr + ']'
     number_sets = model.TimeFreqSupport.NumberSets      # Number of time steps
     timeIds = range(1, number_sets + 1)                 # List of time steps
+    timeSets = model.TimeFreqSupport.TimeFreqs.ScopingIds  # List of time steps
     
     # Read mesh in results file
     mesh_op = dpf.operators.mesh.mesh_provider() 
@@ -109,6 +110,7 @@ for a in analysisNumbers:
     # Get all beams and the element information
     beam_conns = DataModel.GetObjectsByType(DataModelObjectCategory.Beam)
     beamElemIds = [solver_data.GetObjectData(beam).ElementId for beam in beam_conns]
+    beamElemIds = [b for b in beamElemIds if b != 0]
     
     # Create dictionary to store all data for each beam
     beam_dat = {}
@@ -180,8 +182,8 @@ for a in analysisNumbers:
             TQ_J = moment_fields['TQ_J'][t].Data[i]*momentQuan
             bendStr_I = M_I * beam_dat[eid]['rad'] / beam_dat[eid]['I']
             bendStr_J = M_J * beam_dat[eid]['rad'] / beam_dat[eid]['I']
-            combStr_I = beam_dat[eid]['Direct Stress'][i] + bendStr_I
-            combStr_J = beam_dat[eid]['Direct Stress'][i] + bendStr_J
+            combStr_I = beam_dat[eid]['Direct Stress'][t] + bendStr_I
+            combStr_J = beam_dat[eid]['Direct Stress'][t] + bendStr_J
             torStr_I = TQ_I * beam_dat[eid]['rad'] / beam_dat[eid]['J']
             torStr_J = TQ_J * beam_dat[eid]['rad'] / beam_dat[eid]['J']
             eqvStr_I = computeEquivStress(combStr_I, torStr_I)
