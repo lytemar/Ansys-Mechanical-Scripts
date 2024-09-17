@@ -30,7 +30,8 @@ forceUnit = '[' + forceUnitStr + ']'
 stressUnit = '[' + stressUnitStr + ']'          # Desired stress output unit
 momentUnit = '[' + momentUnitStr + ']'          # Desired moment/torque output unit
 
-### Define quantities for units obtained from elemental results
+### Define quantities for units obtained from elemental results.
+### SET THESE TO THE SOLVER UNIT SYSTEM
 forceQuan = Quantity('1 [lbf]')
 momentQuan = Quantity('1 [lbf in]')
 stressQuan = Quantity('1 [psi]')
@@ -159,9 +160,9 @@ for a in analysisNumbers:
         force_fields[k] = dpf.operators.result.mapdl.smisc(time_scoping=timeScoping.Ids, mesh=my_mesh, data_sources=dataSources, item_index=v, mesh_scoping=beamElem_scoping).outputs.fields_container.GetData()
         # Unit conversion
         unitConvOp = dpf.operators.math.unit_convert_fc()
-        unitConvOp.inputs.fields_container.Connect(force_fields[k])
-        unitConvOp.inputs.unit_name.Connect(forceUnitStr)
-        force_fields[k] = unitConvOp.outputs.fields_container.GetData()
+        #unitConvOp.inputs.fields_container.Connect(force_fields[k])
+        #unitConvOp.inputs.unit_name.Connect(forceUnitStr)
+        #force_fields[k] = unitConvOp.outputs.fields_container.GetData()
     for k, v in moment_fields_idx.items():
         moment_fields[k] = dpf.operators.result.mapdl.smisc(time_scoping=timeScoping.Ids, mesh=my_mesh, data_sources=dataSources, item_index = v, mesh_scoping=beamElem_scoping).outputs.fields_container.GetData()
 
