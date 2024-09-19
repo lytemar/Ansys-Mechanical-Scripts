@@ -13,7 +13,7 @@ user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
 
 ################### Parameters ########################
-analysisNumbers = [0]       # List of analysis systems to apply this script
+analysisNumbers = [0, 1, 3]       # List of analysis systems to apply this script
 
 #  Place units in Ansys Mechanical format for output conversion
 lengthUnitStr = 'in'            # Desired length output unit
