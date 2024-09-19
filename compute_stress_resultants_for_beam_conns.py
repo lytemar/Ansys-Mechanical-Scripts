@@ -214,7 +214,7 @@ for a in analysisNumbers:
     data = {}
     cols = ['Beam Connection Name',
             'Beam Element ID',
-            'Radius ' + lengthUnit,
+            'Diameter ' + lengthUnit,
             'Cross-Sectional Area ' + areaUnit,
             'Moment of Inertia ' + inertiaUnit,
             'Polar Moment of Inertia ' + inertiaUnit,
@@ -237,7 +237,7 @@ for a in analysisNumbers:
         for t in range(len(timeScoping.Ids)):
             data[cols[0]].append(beam_dat[eid]['Name'])
             data[cols[1]].append(eid)
-            data[cols[2]].append(beam_dat[eid]['rad'] / Quantity('1 '+ lengthUnit))
+            data[cols[2]].append(beam_dat[eid]['dia'] / Quantity('1 '+ lengthUnit))
             data[cols[3]].append(beam_dat[eid]['area'] / Quantity('1 '+ areaUnit))
             data[cols[4]].append(beam_dat[eid]['I'] / Quantity('1 ' + inertiaUnit))
             data[cols[5]].append(beam_dat[eid]['J'] / Quantity('1 ' + inertiaUnit))
