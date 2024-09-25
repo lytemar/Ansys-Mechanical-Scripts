@@ -10,25 +10,12 @@ createContactTool
 #import time
 #StartTime = time.time()
 
+################### Parameters ########################
+analysisNumbers = [0]       # List of analysis systems to apply this script
+################### End Parameters ########################
+
 model = ExtAPI.DataModel.Project.Model
 analyses = model.Analyses
-analysis = model.Analyses[0]
-analysis_settings = analysis.AnalysisSettings
-n = analysis_settings.NumberOfSteps             # number of time steps
-DISP_TIMES = [analysis_settings.GetStepEndTime(i) for i in range(1, n+1, 1)]
-
-# Get all nonliner connections and contacts
-conns = model.Connections
-contacts = conns.GetChildren(DataModelObjectCategory.ContactRegion, True)
-linear_contacts = [ContactType.Bonded, ContactType.NoSeparation]
-#contacts = [c for c in contacts if c.ContactType not in linear_contacts]
-#supp_conts = [c for c in contacts if c.Suppressed]
-
-# Contact names and IDs
-contNames = [i.Name for i in contacts]
-contIDs = [i.ObjectId for i in contacts]
-
-# Create contact tool for each contact
 
 def createContactTool(contactID, lstContID, contName, dispTimes):
     """
@@ -100,15 +87,34 @@ def createContactTool(contactID, lstContID, contName, dispTimes):
         
     return contact_tool
 
-with Transaction():         # Suppress GUI update until complete to speed the process
-    # Create contact tools and collect in a list
-    contact_tools = [createContactTool(id, contIDs, name, DISP_TIMES) for id, name in zip(contIDs, contNames)]
-    # contact_tools = [createContactTool(id, contIDs, name, DISP_TIMES) for id, name,c  in zip(contIDs, contNames, contacts) if not c.Suppressed]
+for a in analysisNumbers:
+    analysis = Model.Analyses[a]
+    analysis_settings = analysis.AnalysisSettings
+    n = analysis_settings.NumberOfSteps             # number of time steps
+    DISP_TIMES = [analysis_settings.GetStepEndTime(i) for i in range(1, n+1, 1)]
 
-# Put all contact tools into a group folder
-group = Tree.Group(contact_tools)
-group.Name = "Contact Tools"
+    # Get all nonliner connections and contacts
+    conns = model.Connections
+    contacts = conns.GetChildren(DataModelObjectCategory.ContactRegion, True)
+    linear_contacts = [ContactType.Bonded, ContactType.NoSeparation]
+    #contacts = [c for c in contacts if c.ContactType not in linear_contacts]
+    #supp_conts = [c for c in contacts if c.Suppressed]
 
-Tree.Activate([analysis.Solution])
+    # Contact names and IDs
+    contNames = [i.Name for i in contacts]
+    contIDs = [i.ObjectId for i in contacts]
+
+    # Create contact tool for each contact
+
+    with Transaction():         # Suppress GUI update until complete to speed the process
+        # Create contact tools and collect in a list
+        contact_tools = [createContactTool(id, contIDs, name, DISP_TIMES) for id, name in zip(contIDs, contNames)]
+        # contact_tools = [createContactTool(id, contIDs, name, DISP_TIMES) for id, name, c in zip(contIDs, contNames, contacts) if not c.Suppressed]
+
+    # Put all contact tools into a group folder
+    group = Tree.Group(contact_tools)
+    group.Name = "Contact Tools"
+
+    Tree.Activate([analysis.Solution])
 
 #print(str(time.time() - StartTime))
