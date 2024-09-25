@@ -156,7 +156,7 @@ for a in analysisNumbers:
 
     x = datetime.datetime.now()
     
-    file_name_body = analysis.Name + ' - Eqv_Stresses_' + x.strftime("%m") + "-" + x.strftime("%d") + "-" + x.strftime("%y")
+    file_name_body = analysis.Name + ' - Eqv_Stresses_All_Times_' + x.strftime("%m") + "-" + x.strftime("%d") + "-" + x.strftime("%y")
     writeCSV(user_dir + '/' + file_name_body + ".csv", data, cols)
     
     print("[INFO] Process completed for " + analysis.Name)
