@@ -137,9 +137,9 @@ for a in analysisNumbers:
             'Result ID',
             'Location Name',
             'Time [' + timeUnit + ']',
-            'Minimum Eqv Stress [' + lengthUnit + ']',
-            'Maximum Eqv Stress [' + lengthUnit + ']',
-            'Average Eqv Stress [' + lengthUnit + ']']
+            'Minimum Total Deformation [' + lengthUnit + ']',
+            'Maximum Total Deformation [' + lengthUnit + ']',
+            'Average Total Deformation [' + lengthUnit + ']']
 
     for c in cols:
         data[c] = []
