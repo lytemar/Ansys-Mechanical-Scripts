@@ -14,7 +14,7 @@ user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
 
 ################### Parameters ########################
-analysisNumbers = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]       # List of analysis systems to apply this script
+analysisNumbers = [0]       # List of analysis systems to apply this script
 
 #  Place units in Ansys Mechanical format for output conversion
 lengthUnitStr = 'in'            # Desired length output unit
@@ -33,11 +33,16 @@ stressUnit = '[' + stressUnitStr + ']'          # Desired stress output unit
 momentUnit = '[' + momentUnitStr + ']'          # Desired moment/torque output unit
 stiffnessUnit = '[' + stiffnessUnitStr + ']'    # Desired stiffness output unit
 
+lengthQuan = Quantity(1, lengthUnitStr)         # Desired length output unit quantity
+areaQuan = Quantity(1, areaUnitStr)             # Desired area output unit quantity
+stiffnessQuan = Quantity(1, stiffnessUnitStr)   # Desired stiffness output unit quantity
+inertiaQuan = Quantity(1, inertiaUnitStr)       # Desired inertia output unit quantity
+
 ### Define quantities for units obtained from elemental results.
 ### SET THESE TO THE SOLVER UNIT SYSTEM
-forceQuan = Quantity('1 [lbf]')
-momentQuan = Quantity('1 [lbf in]')
-stressQuan = Quantity('1 [psi]')
+forceQuan = Quantity(1, 'lbf')
+momentQuan = Quantity(1, 'lbf in')
+stressQuan = Quantity(1, 'psi')
 
 ################### End Parameters ########################
 
@@ -125,8 +130,46 @@ for a in analysisNumbers:
                 mats[n]['ElasticModulus'] = elasticity["Young's Modulus"][1] * Quantity('1 ['+ elasticity["Young's Modulus"][0] + ']')
 
     # Get all beams and the element information
+    beams = {}
     beam_conns = DataModel.GetObjectsByType(DataModelObjectCategory.Beam)
     beamElemIds = [solver_data.GetObjectData(beam).ElementId for beam in beam_conns]
+    
+    for b, eid in zip(beam_conns, beamElemIds):
+        if eid != 0:
+            beams[eid]={}
+            beams[eid]['Name'] = b.Name
+            beams[eid]['Conn ID'] = b.ObjectId
+            xr = b.ReferenceXCoordinate
+            yr = b.ReferenceYCoordinate
+            zr = b.ReferenceZCoordinate
+            xm = b.MobileXCoordinate
+            ym = b.MobileYCoordinate
+            zm = b.MobileZCoordinate
+            l = ((xr-xm)**2 + (yr-ym)**2 + (zr-zm)**2)**(0.5)
+            beams[eid]['len'] = l
+            beams[eid]['Material'] = b.Material
+            rad = b.Radius
+            beams[eid]['rad'] = rad
+            area = pi*rad**2
+            beams[eid]['area'] = area
+            beams[eid]['dia'] = 2.0*rad
+            beams[eid]['I'] = pi*rad**4/4.0
+            beams[eid]['J'] = pi*rad**4/2.0
+            if b.Material in mats.keys():
+                modulus = mats[b.Material]['ElasticModulus']
+                stiffness = modulus*area/l
+                beams[eid]['Stiffness'] = stiffness
+            beams[eid]['times'] = all_times
+            beams[eid]['FX'] = []
+            beams[eid]['Shear Force'] = []
+            beams[eid]['Bending Moment'] = []
+            beams[eid]['Torque'] = []
+            beams[eid]['Direct Stress'] = []
+            beams[eid]['Bending Stress'] = []
+            beams[eid]['Torsional Stress'] = []
+            beams[eid]['Equivalent Stress'] = []
+            beams[eid]['Combined Stress'] = []
+    
     beamElemIds = [b for b in beamElemIds if b != 0]
     xRefCoords = [b.ReferenceXCoordinate for b in beam_conns]
     yRefCoords = [b.ReferenceYCoordinate for b in beam_conns]
@@ -137,38 +180,10 @@ for a in analysisNumbers:
     beamLengths = [((xr-xm)**2 + (yr-ym)**2 + (zr-zm)**2)**(0.5) for xr, yr ,zr, xm, ym, zm in zip(xRefCoords, yRefCoords, zRefCoords, xMobCoords, yMobCoords, zMobCoords)]
     beamMats = [b.Material for b in beam_conns]
     
-    # Create dictionary to store all data for each beam
-    beam_dat = {}
-    for conn, eid, l, mat in zip(beam_conns, beamElemIds, beamLengths, beamMats):
-        beam_dat[eid] = {}
-        area = pi*conn.Radius**2
-        if mat in mats.keys():
-            modulus = mats[mat]['ElasticModulus']
-            stiffness = modulus*area/l
-            beam_dat[eid]['Stiffness'] = stiffness
-        beam_dat[eid]['Name'] = conn.Name
-        beam_dat[eid]['Material'] = mat
-        beam_dat[eid]['rad'] = conn.Radius
-        beam_dat[eid]['dia'] = 2.0*conn.Radius
-        beam_dat[eid]['len'] = l
-        beam_dat[eid]['area'] = area
-        beam_dat[eid]['I'] = pi*conn.Radius**4/4.0
-        beam_dat[eid]['J'] = pi*conn.Radius**4/2.0
-        beam_dat[eid]['times'] = all_times
-        beam_dat[eid]['FX'] = []
-        beam_dat[eid]['Shear Force'] = []
-        beam_dat[eid]['Bending Moment'] = []
-        beam_dat[eid]['Torque'] = []
-        beam_dat[eid]['Direct Stress'] = []
-        beam_dat[eid]['Bending Stress'] = []
-        beam_dat[eid]['Torsional Stress'] = []
-        beam_dat[eid]['Equivalent Stress'] = []
-        beam_dat[eid]['Combined Stress'] = []
-        
     # Beam Element Scoping
     beamElem_scoping = dpf.Scoping()
     beamElem_scoping.Location = "Elemental"
-    beamElem_scoping.Ids = beamElemIds
+    beamElem_scoping.Ids = beams.keys()
     
     analysis_settings = analysis.AnalysisSettings
 
@@ -197,7 +212,7 @@ for a in analysisNumbers:
     for t in range(len(timeScoping.Ids)):
         for i, eid in enumerate(force_fields['FX_I'][t].ScopingIds):
             f = force_fields['FX_I'][t].Data[i] * forceQuan
-            beam_dat[eid]['FX'].append(f)
+            beams[eid]['FX'].append(f)
             SFz_I = force_fields['SFz_I'][t].Data[i]
             SFy_I = force_fields['SFy_I'][t].Data[i]
             SFz_J = force_fields['SFz_J'][t].Data[i]
@@ -205,11 +220,11 @@ for a in analysisNumbers:
             SF_I = (SFz_I**2 + SFy_I**2)**(0.5)
             SF_J = (SFz_J**2 + SFy_J**2)**(0.5)
             if abs(SF_I) >= abs(SF_J):
-                beam_dat[eid]['Shear Force'].append(SF_I * forceQuan)
+                beams[eid]['Shear Force'].append(SF_I * forceQuan)
             else:
-                beam_dat[eid]['Shear Force'].append(SF_J * forceQuan)
-            s = f/beam_dat[eid]['area']
-            beam_dat[eid]['Direct Stress'].append(s)
+                beams[eid]['Shear Force'].append(SF_J * forceQuan)
+            s = f/beams[eid]['area']
+            beams[eid]['Direct Stress'].append(s)
             
     # Compute the equivalent stress at I and J.  Record whichever result is larger in magnitude in the data dictionary.
     for t in range(len(timeScoping.Ids)):
@@ -218,33 +233,34 @@ for a in analysisNumbers:
             M_J = (moment_fields['MY_J'][t].Data[i]**2 + moment_fields['MZ_J'][t].Data[i]**2)**(0.5)*momentQuan
             TQ_I = moment_fields['TQ_I'][t].Data[i]*momentQuan
             TQ_J = moment_fields['TQ_J'][t].Data[i]*momentQuan
-            bendStr_I = M_I * beam_dat[eid]['rad'] / beam_dat[eid]['I']
-            bendStr_J = M_J * beam_dat[eid]['rad'] / beam_dat[eid]['I']
-            combStr_I = beam_dat[eid]['Direct Stress'][t] + bendStr_I
-            combStr_J = beam_dat[eid]['Direct Stress'][t] + bendStr_J
-            torStr_I = TQ_I * beam_dat[eid]['rad'] / beam_dat[eid]['J']
-            torStr_J = TQ_J * beam_dat[eid]['rad'] / beam_dat[eid]['J']
+            bendStr_I = M_I * beams[eid]['rad'] / beams[eid]['I']
+            bendStr_J = M_J * beams[eid]['rad'] / beams[eid]['I']
+            combStr_I = beams[eid]['Direct Stress'][t] + bendStr_I
+            combStr_J = beams[eid]['Direct Stress'][t] + bendStr_J
+            torStr_I = TQ_I * beams[eid]['rad'] / beams[eid]['J']
+            torStr_J = TQ_J * beams[eid]['rad'] / beams[eid]['J']
             eqvStr_I = computeEquivStress(combStr_I, torStr_I)
             eqvStr_J = computeEquivStress(combStr_J, torStr_J)
             if abs(eqvStr_I) >= abs(eqvStr_J):
-                beam_dat[eid]['Bending Moment'].append(M_I)
-                beam_dat[eid]['Torque'].append(TQ_I)
-                beam_dat[eid]['Bending Stress'].append(bendStr_I)
-                beam_dat[eid]['Torsional Stress'].append(torStr_I)
-                beam_dat[eid]['Equivalent Stress'].append(eqvStr_I)
-                beam_dat[eid]['Combined Stress'].append(combStr_I)
+                beams[eid]['Bending Moment'].append(M_I)
+                beams[eid]['Torque'].append(TQ_I)
+                beams[eid]['Bending Stress'].append(bendStr_I)
+                beams[eid]['Torsional Stress'].append(torStr_I)
+                beams[eid]['Equivalent Stress'].append(eqvStr_I)
+                beams[eid]['Combined Stress'].append(combStr_I)
             else:
-                beam_dat[eid]['Bending Moment'].append(M_J)
-                beam_dat[eid]['Torque'].append(TQ_J)
-                beam_dat[eid]['Bending Stress'].append(bendStr_J)
-                beam_dat[eid]['Torsional Stress'].append(torStr_J)
-                beam_dat[eid]['Equivalent Stress'].append(eqvStr_J)
-                beam_dat[eid]['Combined Stress'].append(combStr_J)
+                beams[eid]['Bending Moment'].append(M_J)
+                beams[eid]['Torque'].append(TQ_J)
+                beams[eid]['Bending Stress'].append(bendStr_J)
+                beams[eid]['Torsional Stress'].append(torStr_J)
+                beams[eid]['Equivalent Stress'].append(eqvStr_J)
+                beams[eid]['Combined Stress'].append(combStr_J)
     
     # Create data dictionary to written to output csv file
     data = {}
     cols = ['Beam Connection Name',
             'Beam Element ID',
+            'Beam Connection ID',
             'Material',
             'Diameter ' + lengthUnit,
             'Length ' + lengthUnit,
@@ -267,31 +283,32 @@ for a in analysisNumbers:
     for c in cols:
         data[c] = []
 
-    for eid in sorted(beam_dat.keys()):
+    for eid in sorted(beams.keys()):
         for t in range(len(timeScoping.Ids)):
-            data[cols[0]].append(beam_dat[eid]['Name'])
+            data[cols[0]].append(beams[eid]['Name'])
             data[cols[1]].append(eid)
-            data[cols[2]].append(beam_dat[eid]['Material'])
-            data[cols[3]].append(beam_dat[eid]['dia'] / Quantity('1 '+ lengthUnit))
-            data[cols[4]].append(beam_dat[eid]['len'] / Quantity('1 '+ lengthUnit))
-            data[cols[5]].append(beam_dat[eid]['area'] / Quantity('1 '+ areaUnit))
-            data[cols[6]].append(beam_dat[eid]['I'] / Quantity('1 ' + inertiaUnit))
-            data[cols[7]].append(beam_dat[eid]['J'] / Quantity('1 ' + inertiaUnit))
-            if beam_dat[eid]['Material'] in mats.keys():
-                data[cols[8]].append(beam_dat[eid]['Stiffness'] / Quantity('1 ' + stiffnessUnit))
+            data[cols[2]].append(beams[eid]['Conn ID'])
+            data[cols[3]].append(beams[eid]['Material'])
+            data[cols[4]].append(beams[eid]['dia'] / lengthQuan)
+            data[cols[5]].append(beams[eid]['len'] / lengthQuan)
+            data[cols[6]].append(beams[eid]['area'] / areaQuan)
+            data[cols[7]].append(beams[eid]['I'] / inertiaQuan)
+            data[cols[8]].append(beams[eid]['J'] / inertiaQuan)
+            if beams[eid]['Material'] in mats.keys():
+                data[cols[9]].append(beams[eid]['Stiffness'] / stiffnessQuan)
             else:
-                data[cols[8]].append(0)
-            data[cols[9]].append(beam_dat[eid]['times'][t])
-            data[cols[10]].append(t+1)
-            data[cols[11]].append(beam_dat[eid]['FX'][t] / Quantity('1 ' + forceUnit))
-            data[cols[12]].append(beam_dat[eid]['Shear Force'][t] / Quantity('1 ' + forceUnit))
-            data[cols[13]].append(beam_dat[eid]['Torque'][t] / Quantity('1 ' + momentUnit))
-            data[cols[14]].append(beam_dat[eid]['Bending Moment'][t] / Quantity('1 ' + momentUnit))
-            data[cols[15]].append(beam_dat[eid]['Equivalent Stress'][t] / Quantity('1 ' + stressUnit))
-            data[cols[16]].append(beam_dat[eid]['Direct Stress'][t] / Quantity('1 ' + stressUnit))
-            data[cols[17]].append(beam_dat[eid]['Bending Stress'][t] / Quantity('1 ' + stressUnit))
-            data[cols[18]].append(beam_dat[eid]['Combined Stress'][t] / Quantity('1 ' + stressUnit))
-            data[cols[19]].append(beam_dat[eid]['Torsional Stress'][t] / Quantity('1 ' + stressUnit))
+                data[cols[9]].append(0)
+            data[cols[10]].append(beams[eid]['times'][t])
+            data[cols[11]].append(t+1)
+            data[cols[12]].append(beams[eid]['FX'][t] / Quantity('1 ' + forceUnit))
+            data[cols[13]].append(beams[eid]['Shear Force'][t] / Quantity('1 ' + forceUnit))
+            data[cols[14]].append(beams[eid]['Torque'][t] / Quantity('1 ' + momentUnit))
+            data[cols[15]].append(beams[eid]['Bending Moment'][t] / Quantity('1 ' + momentUnit))
+            data[cols[16]].append(beams[eid]['Equivalent Stress'][t] / Quantity('1 ' + stressUnit))
+            data[cols[17]].append(beams[eid]['Direct Stress'][t] / Quantity('1 ' + stressUnit))
+            data[cols[18]].append(beams[eid]['Bending Stress'][t] / Quantity('1 ' + stressUnit))
+            data[cols[19]].append(beams[eid]['Combined Stress'][t] / Quantity('1 ' + stressUnit))
+            data[cols[20]].append(beams[eid]['Torsional Stress'][t] / Quantity('1 ' + stressUnit))
         
 
     x = datetime.datetime.now()
