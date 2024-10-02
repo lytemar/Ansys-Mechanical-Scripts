@@ -117,7 +117,7 @@ for a in analysisNumbers:
 
     x = datetime.datetime.now()
     
-    file_name_body = analysis.Name + ' - Max_Directional_Velovity_' + x.strftime("%m") + "-" + x.strftime("%d") + "-" + x.strftime("%y")
+    file_name_body = analysis.Name + ' - Max_Directional_Velocity_' + x.strftime("%m") + "-" + x.strftime("%d") + "-" + x.strftime("%y")
     writeCSV(user_dir + '/' + file_name_body + ".csv", data, cols)
     
     print("[INFO] Process completed for " + analysis.Name)
