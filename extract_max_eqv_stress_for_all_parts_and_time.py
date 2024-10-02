@@ -1,6 +1,6 @@
 """
-Extract Maximum Equivalent Stress for all boies in named selections at all analysis times.
-==========================================================================================
+Extract Maximum Equivalent Stress for all bodies in named selections at all analysis times.
+===========================================================================================
 
 This script extracts the maximum von Mises equivalent stress for each group of scoped bodies
 within named selections for all analysis times.  The named selections that are of interest are
@@ -24,22 +24,16 @@ NAMED_SEL_FOLDER = 'Results Scoping'        # Named selection folder name contai
 #  Place units in Ansys Mechanical format for output conversion
 lengthUnitStr = 'in'            # Desired length output unit
 forceUnitStr = 'lbf'            # Desired force output unit
-if forceUnitStr == 'lbf' and lengthUnitStr == 'in':
+if forceUnitStr.Tolower() == 'lbf' and lengthUnitStr.ToLower() == 'in':
     stressUnitStr = 'psi'
-elif forceUnitStr == 'N' and lengthUnitStr == 'mm':
+elif forceUnitStr.ToUpper() == 'N' and lengthUnitStr.ToLower() == 'mm':
     stressUnitStr = 'MPa'
 else:
     stressUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-2'         # Desired stress output unit
-momentUnitStr = forceUnitStr + '*' + lengthUnitStr                 # Desired moment/torque output unit
 
 lengthUnit = '[' + lengthUnitStr + ']'
-areaUnitStr = lengthUnitStr + '^2'              # Area Unit string
-areaUnit = '[' + areaUnitStr + ']'             # Area Unit
-inertiaUnitStr = lengthUnitStr + '^4'              # Inertia Unit string
-inertiaUnit = '[' + inertiaUnitStr + ']'             # Inertia Unit
 forceUnit = '[' + forceUnitStr + ']'
 stressUnit = '[' + stressUnitStr + ']'          # Desired stress output unit
-momentUnit = '[' + momentUnitStr + ']'          # Desired moment/torque output unit
 ################### End Parameters ########################
 
 
