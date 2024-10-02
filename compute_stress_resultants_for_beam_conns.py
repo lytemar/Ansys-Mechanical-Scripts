@@ -1,6 +1,6 @@
 """
-Calculate Stress Resultants for all beam connections using results from beam probes.
-===================================================================================
+Calculate Stress Resultants for all beam connections using results from results file.
+=====================================================================================
 
 """
 import wbjn
@@ -19,7 +19,12 @@ analysisNumbers = [0]       # List of analysis systems to apply this script
 #  Place units in Ansys Mechanical format for output conversion
 lengthUnitStr = 'in'            # Desired length output unit
 forceUnitStr = 'lbf'            # Desired force output unit
-stressUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-2'          # Desired stress output unit
+if lengthUnitStr.ToLower() == 'in' and forceUnitStr.ToLower() == 'lbf':
+    stressUnitStr = 'psi'
+elif lengthUnitStr.ToLower() == 'mm' and forceUnitStr.ToUpper() == 'N':
+    stressUnitStr = 'MPa'
+else:
+    stressUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-2'          # Desired stress output unit
 momentUnitStr = forceUnitStr + '*' + lengthUnitStr                  # Desired moment/torque output unit
 stiffnessUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-1'       # Desired stiffness output unit
 
@@ -37,12 +42,9 @@ lengthQuan = Quantity(1, lengthUnitStr)         # Desired length output unit qua
 areaQuan = Quantity(1, areaUnitStr)             # Desired area output unit quantity
 stiffnessQuan = Quantity(1, stiffnessUnitStr)   # Desired stiffness output unit quantity
 inertiaQuan = Quantity(1, inertiaUnitStr)       # Desired inertia output unit quantity
-
-### Define quantities for units obtained from elemental results.
-### SET THESE TO THE SOLVER UNIT SYSTEM
-forceQuan = Quantity(1, 'lbf')
-momentQuan = Quantity(1, 'lbf in')
-stressQuan = Quantity(1, 'psi')
+forceQuan = Quantity(1, forceUnitStr)           # Desired force output unit quantity
+momentQuan = Quantity(1, momentUnitStr)         # Desired moment output unit quantity
+stressQuan = Quantity(1, stressUnitStr)         # Desired stress output unit quantity
 
 ################### End Parameters ########################
 
@@ -89,6 +91,20 @@ def computeEquivStress(combStrs, torStrs):
 for a in analysisNumbers:
     analysis = Model.Analyses[a]
     solver_data = analysis.Solution.SolverData
+    
+    # Current solver units of interest and quantities
+    solLenUnitStr = analysis.CurrentConsistentUnitFromQuantityName("Length")
+    solAreaUnitStr = analysis.CurrentConsistentUnitFromQuantityName("Area")
+    solForceUnitStr = analysis.CurrentConsistentUnitFromQuantityName("Force")
+    solStressUnitStr = analysis.CurrentConsistentUnitFromQuantityName("Stress")
+    solMomentUnitStr = analysis.CurrentConsistentUnitFromQuantityName("Moment")
+    solStiffnessUnitStr = analysis.CurrentConsistentUnitFromQuantityName("Stiffness")
+    solLenQuan = Quantity(1, solLenUnitStr)
+    solAreaQuan = Quantity(1, solAreaUnitStr)
+    solForceQuan = Quantity(1, solForceUnitStr)
+    solStressQuan = Quantity(1, solStressUnitStr)
+    solMomentQuan = Quantity(1, solMomentUnitStr)
+    solStiffnessQuan = Quantity(1, solStiffnessUnitStr)
     
     # Result Data
     filepath = analysis.ResultFileName
@@ -211,7 +227,7 @@ for a in analysisNumbers:
     # Place the axial forces and direct stresses into the data dictionary
     for t in range(len(timeScoping.Ids)):
         for i, eid in enumerate(force_fields['FX_I'][t].ScopingIds):
-            f = force_fields['FX_I'][t].Data[i] * forceQuan
+            f = force_fields['FX_I'][t].Data[i] * solForceQuan
             beams[eid]['FX'].append(f)
             SFz_I = force_fields['SFz_I'][t].Data[i]
             SFy_I = force_fields['SFy_I'][t].Data[i]
@@ -220,19 +236,19 @@ for a in analysisNumbers:
             SF_I = (SFz_I**2 + SFy_I**2)**(0.5)
             SF_J = (SFz_J**2 + SFy_J**2)**(0.5)
             if abs(SF_I) >= abs(SF_J):
-                beams[eid]['Shear Force'].append(SF_I * forceQuan)
+                beams[eid]['Shear Force'].append(SF_I * solForceQuan)
             else:
-                beams[eid]['Shear Force'].append(SF_J * forceQuan)
+                beams[eid]['Shear Force'].append(SF_J * solForceQuan)
             s = f/beams[eid]['area']
             beams[eid]['Direct Stress'].append(s)
             
     # Compute the equivalent stress at I and J.  Record whichever result is larger in magnitude in the data dictionary.
     for t in range(len(timeScoping.Ids)):
         for i, eid in enumerate(moment_fields['MY_I'][t].ScopingIds):
-            M_I = (moment_fields['MY_I'][t].Data[i]**2 + moment_fields['MZ_I'][t].Data[i]**2)**(0.5)*momentQuan
-            M_J = (moment_fields['MY_J'][t].Data[i]**2 + moment_fields['MZ_J'][t].Data[i]**2)**(0.5)*momentQuan
-            TQ_I = moment_fields['TQ_I'][t].Data[i]*momentQuan
-            TQ_J = moment_fields['TQ_J'][t].Data[i]*momentQuan
+            M_I = (moment_fields['MY_I'][t].Data[i]**2 + moment_fields['MZ_I'][t].Data[i]**2)**(0.5)*solMomentQuan
+            M_J = (moment_fields['MY_J'][t].Data[i]**2 + moment_fields['MZ_J'][t].Data[i]**2)**(0.5)*solMomentQuan
+            TQ_I = moment_fields['TQ_I'][t].Data[i]*solMomentQuan
+            TQ_J = moment_fields['TQ_J'][t].Data[i]*solMomentQuan
             bendStr_I = M_I * beams[eid]['rad'] / beams[eid]['I']
             bendStr_J = M_J * beams[eid]['rad'] / beams[eid]['I']
             combStr_I = beams[eid]['Direct Stress'][t] + bendStr_I
@@ -300,15 +316,15 @@ for a in analysisNumbers:
                 data[cols[9]].append(0)
             data[cols[10]].append(beams[eid]['times'][t])
             data[cols[11]].append(t+1)
-            data[cols[12]].append(beams[eid]['FX'][t] / Quantity('1 ' + forceUnit))
-            data[cols[13]].append(beams[eid]['Shear Force'][t] / Quantity('1 ' + forceUnit))
-            data[cols[14]].append(beams[eid]['Torque'][t] / Quantity('1 ' + momentUnit))
-            data[cols[15]].append(beams[eid]['Bending Moment'][t] / Quantity('1 ' + momentUnit))
-            data[cols[16]].append(beams[eid]['Equivalent Stress'][t] / Quantity('1 ' + stressUnit))
-            data[cols[17]].append(beams[eid]['Direct Stress'][t] / Quantity('1 ' + stressUnit))
-            data[cols[18]].append(beams[eid]['Bending Stress'][t] / Quantity('1 ' + stressUnit))
-            data[cols[19]].append(beams[eid]['Combined Stress'][t] / Quantity('1 ' + stressUnit))
-            data[cols[20]].append(beams[eid]['Torsional Stress'][t] / Quantity('1 ' + stressUnit))
+            data[cols[12]].append(beams[eid]['FX'][t] / forceQuan)
+            data[cols[13]].append(beams[eid]['Shear Force'][t] / forceQuan)
+            data[cols[14]].append(beams[eid]['Torque'][t] / momentQuan)
+            data[cols[15]].append(beams[eid]['Bending Moment'][t] / momentQuan)
+            data[cols[16]].append(beams[eid]['Equivalent Stress'][t] / stressQuan)
+            data[cols[17]].append(beams[eid]['Direct Stress'][t] / stressQuan)
+            data[cols[18]].append(beams[eid]['Bending Stress'][t] / stressQuan)
+            data[cols[19]].append(beams[eid]['Combined Stress'][t] / stressQuan)
+            data[cols[20]].append(beams[eid]['Torsional Stress'][t] / stressQuan)
         
 
     x = datetime.datetime.now()
