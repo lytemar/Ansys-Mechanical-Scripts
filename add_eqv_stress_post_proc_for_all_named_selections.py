@@ -1,12 +1,8 @@
 """
 Add equivalent stress post-processing items for all named selections within a tree grouping.
 ============================================================================================
-
-Functions
----------
-createContactTool
-    Create a contact tool for a single contact containing Pressure, Frictional Stress, Sliding Distance, Penetration and Gap for a list of times
 """
+
 #import time
 #StartTime = time.time()
 
