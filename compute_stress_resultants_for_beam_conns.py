@@ -14,7 +14,7 @@ user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
 
 ################### Parameters ########################
-analysisNumbers = [0]       # List of analysis systems to apply this script
+analysisNumbers = [0, 2]       # List of analysis systems to apply this script
 
 #  Place units in Ansys Mechanical format for output conversion
 lengthUnitStr = 'in'            # Desired length output unit
@@ -91,6 +91,7 @@ def computeEquivStress(combStrs, torStrs):
 for a in analysisNumbers:
     analysis = Model.Analyses[a]
     solver_data = analysis.Solution.SolverData
+    analysis_type = analysis.AnalysisType
     
     # Current solver units of interest and quantities
     solLenUnitStr = analysis.CurrentConsistentUnitFromQuantityName("Length")
@@ -329,7 +330,7 @@ for a in analysisNumbers:
 
     x = datetime.datetime.now()
     
-    file_name_body = analysis.Name + ' - Bolt_Results_' + x.strftime("%m") + "-" + x.strftime("%d") + "-" + x.strftime("%y")
+    file_name_body = analysis.Name + ' - type=' + str(analysis_type) + ' - Bolt_Results_' + x.strftime("%m") + "-" + x.strftime("%d") + "-" + x.strftime("%y")
     writeCSV(user_dir + '/' + file_name_body + ".csv", data, cols)
     
     print("[INFO] Process completed for " + analysis.Name)
