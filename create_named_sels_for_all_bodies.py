@@ -6,7 +6,10 @@ Functions
 ---------
 createNamedSelection
     Create a named selection with a name and geometry selection
+
+
 '''
+import re
 
 def createNamedSelection(name, location):
     """
@@ -18,10 +21,18 @@ def createNamedSelection(name, location):
         The name of the named selection
     location : list
         The list of IDs for the geometry selection
+        
+    Returns
+    -------
+    Ansys.ACT.Automation.Mechanical.NamedSelection
+    
     """
+    repl_str = r'[^\w]'     # find all non-alphanumeric characters
     _ = model.AddNamedSelection()
-    _.Name = name
+    _.Name = re.sub(repl_str, '_', name)[:32]       # limit length to 32 characters
     _.Location = location
+    
+    return _
 
 # Selection
 SlMn = ExtAPI.SelectionManager
@@ -38,6 +49,7 @@ print("Listing properties of Items:")
 with Transaction():             # Suppress GUI update until finish to improve speed
     try:
 
+        NSn = []
         for Part in Parts:
             PName = Part.Name
     		
@@ -56,7 +68,7 @@ with Transaction():             # Suppress GUI update until finish to improve sp
                 Sel.Ids = body_ids
                 print("Sel.Ids: ", Sel.Ids)
                 # Create named selection
-                createNamedSelection(body_names[0], Sel)
+                NSn.append(createNamedSelection(body_names[0], Sel))
             else:
                 # Create Named Selection for the multibody part as a whole
                 Sel.Ids = body_ids
@@ -66,21 +78,18 @@ with Transaction():             # Suppress GUI update until finish to improve sp
                 for id, name in zip(body_ids, body_names):
                     Sel.Ids = [id]
                     print("Sel.Ids: ", Sel.Ids)
-                    _ = Part.Name + ": " + name
-                    createNamedSelection(_, Sel)
+                    _ = Part.Name + "." + name
+                    NSn.append(createNamedSelection(_, Sel))
     except:
         print("Add an empty Named Selection first, then re-run")
         
-    # Append numbers after name in name selections if there are multiple bodies with the same name
+    # Append numbers after name in name selections if there are multiple bodies with the same name and limit length to 32
     i = 1   # counting variable
-    # Get all created named selections
-    NSn = ExtAPI.DataModel.Project.Model.NamedSelections.GetChildren(DataModelObjectCategory.NamedSelection, True)
     # Get the names of the created named selections
     NSn_names = [x.Name for x in NSn]
     # Create dictionary with names and counts
     NSn_stats = {}
     for nm in NSn_names:
-        # NSn_stats[nm] = 0
         if NSn_names.count(nm) > 1:
             NSn_stats[nm] = NSn_names.count(nm)
     for index, ns in enumerate(NSn):
@@ -88,7 +97,11 @@ with Transaction():             # Suppress GUI update until finish to improve sp
             val = NSn_stats[ns.Name]
             if val > 0:
                 ns_name = ns.Name
-                NSn[index].Name = ns_name + " " + str(val)
+                NSn[index].Name = ns_name[:32-1-len(str(val))] + "_" + str(val)     # truncate the name and append "_<num>"
                 val -= 1
                 NSn_stats[ns_name] = val
+    
+    # Place the new named selections in a Tree Grouping folder
+    group = Tree.Group(NSn)
+    group.Name = "Auto-generated"
 
