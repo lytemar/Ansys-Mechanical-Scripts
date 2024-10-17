@@ -56,7 +56,7 @@ def getResultsGroupByName(name, type):
     """
     groups = findTreeGroupingFolders(type)
     for group in groups:
-        if group.Name == name:
+        if group.Name.ToLower() == name.ToLower():
             return group
 
 

@@ -78,7 +78,7 @@ def getNamedSelectionsGroupByName(name):
     """
     groups = findTreeGroupingFolders(Model.NamedSelections)
     for group in groups:
-        if group.Name == name:
+        if group.Name.ToLower() == name.ToLower():
             return group
 
 
