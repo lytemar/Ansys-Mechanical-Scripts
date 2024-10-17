@@ -6,6 +6,7 @@ This script extracts the maximum von Mises equivalent stress for each group of s
 within named selections for all analysis times.  The named selections that are of interest are
 placed in a Tree Grouping folder called `Results Scoping`.
 
+
 """
 import wbjn
 import datetime
@@ -24,7 +25,7 @@ NAMED_SEL_FOLDER = 'Results Scoping'        # Named selection folder name contai
 #  Place units in Ansys Mechanical format for output conversion
 lengthUnitStr = 'in'            # Desired length output unit
 forceUnitStr = 'lbf'            # Desired force output unit
-if forceUnitStr.Tolower() == 'lbf' and lengthUnitStr.ToLower() == 'in':
+if forceUnitStr.ToLower() == 'lbf' and lengthUnitStr.ToLower() == 'in':
     stressUnitStr = 'psi'
 elif forceUnitStr.ToUpper() == 'N' and lengthUnitStr.ToLower() == 'mm':
     stressUnitStr = 'MPa'
@@ -102,6 +103,21 @@ def writeCSV(filename, data, cols):
 for a in analysisNumbers:
     analysis = Model.Analyses[a]
     solver_data = analysis.Solution.SolverData
+    analysis_type = analysis.AnalysisType
+    
+    # Current solver units of interest and quantities
+    solLenUnitStr = analysis.CurrentConsistentUnitFromQuantityName("Length")
+    solAreaUnitStr = analysis.CurrentConsistentUnitFromQuantityName("Area")
+    solForceUnitStr = analysis.CurrentConsistentUnitFromQuantityName("Force")
+    solStressUnitStr = analysis.CurrentConsistentUnitFromQuantityName("Stress")
+    solMomentUnitStr = analysis.CurrentConsistentUnitFromQuantityName("Moment")
+    solStiffnessUnitStr = analysis.CurrentConsistentUnitFromQuantityName("Stiffness")
+    solLenQuan = Quantity(1, solLenUnitStr)
+    solAreaQuan = Quantity(1, solAreaUnitStr)
+    solForceQuan = Quantity(1, solForceUnitStr)
+    solStressQuan = Quantity(1, solStressUnitStr)
+    solMomentQuan = Quantity(1, solMomentUnitStr)
+    solStiffnessQuan = Quantity(1, solStiffnessUnitStr)
     
     # Result Data
     filepath = analysis.ResultFileName
@@ -198,7 +214,7 @@ for a in analysisNumbers:
 
     x = datetime.datetime.now()
     
-    file_name_body = analysis.Name + ' - Max_Eqv_Stress_' + x.strftime("%m") + "-" + x.strftime("%d") + "-" + x.strftime("%y")
+    file_name_body = analysis.Name + ' - type=' + str(analysis_type) + ' - Max_Eqv_Stress_' + x.strftime("%m") + "-" + x.strftime("%d") + "-" + x.strftime("%y")
     writeCSV(user_dir + '/' + file_name_body + ".csv", data, cols)
     
     print("[INFO] Process completed for " + analysis.Name)
