@@ -32,8 +32,6 @@ elif forceUnitStr.ToUpper() == 'N' and lengthUnitStr.ToLower() == 'mm':
 else:
     stressUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-2'         # Desired stress output unit
 
-lengthUnit = '[' + lengthUnitStr + ']'
-forceUnit = '[' + forceUnitStr + ']'
 stressUnit = '[' + stressUnitStr + ']'          # Desired stress output unit
 ################### End Parameters ########################
 
