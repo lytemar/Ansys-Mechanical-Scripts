@@ -8,6 +8,7 @@ createNamedSelection
     Create a named selection with a name and geometry selection
 
 
+
 '''
 import re
 
@@ -62,6 +63,8 @@ with Transaction():             # Suppress GUI update until finish to improve sp
                 print("Body name: " + BName + ", BId: " + str(BId))
                 body_ids.append(BId)
                 body_names.append(BName)
+            
+            print("Number of bodies in part: ", len(body_ids))
     
             # Create named selection for individual bodies.  If a multibody part, create named selection for the multibody part too.
             if len(body_ids) == 1:
@@ -73,12 +76,12 @@ with Transaction():             # Suppress GUI update until finish to improve sp
                 # Create Named Selection for the multibody part as a whole
                 Sel.Ids = body_ids
                 # print("Sel.Ids: ", Sel.Ids)
-                createNamedSelection(Part.Name, Sel)
+                NSn.append(createNamedSelection(Part.Name, Sel))
                 # Create Named Selections for each part that composes the multibody part
                 for id, name in zip(body_ids, body_names):
                     Sel.Ids = [id]
                     print("Sel.Ids: ", Sel.Ids)
-                    _ = Part.Name + "." + name
+                    _ = Part.Name + "_" + name
                     NSn.append(createNamedSelection(_, Sel))
     except:
         print("Add an empty Named Selection first, then re-run")
