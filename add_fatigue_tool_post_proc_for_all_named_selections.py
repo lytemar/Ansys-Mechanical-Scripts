@@ -73,16 +73,18 @@ def createFatigueTool(ns):
     life.Location = ns
     damage = fat_tool.AddDamage()
     damage.Location = ns
-    fs = fat_tool.AddSafetyFactor()
-    fs.Location = ns
-    biax = fat_tool.AddBiaxialityIndication()
-    biax.Location = ns
+    if str(analysis_type).ToLower() != "spectrum":
+        fs = fat_tool.AddSafetyFactor()
+        fs.Location = ns
+        biax = fat_tool.AddBiaxialityIndication()
+        biax.Location = ns
     
     return fat_tool
 
 
 for a in analysisNumbers:
     analysis = Model.Analyses[a]
+    analysis_type = analysis.AnalysisType
     
     # Get all named selections that are grouped under the folder NAMED_SEL_FOLDER
     ns = Model.NamedSelections
