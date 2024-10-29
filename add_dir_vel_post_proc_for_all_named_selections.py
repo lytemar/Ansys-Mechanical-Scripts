@@ -69,7 +69,10 @@ def createDirVelocity(ns, dir):
         The newly created post processing directional velocity
     """
     # add a total deformation
-    dir_vel = analysis.Solution.AddDirectionalVelocity()
+    if str(analysis_type).ToLower() == "spectrum":
+        dir_vel = analysis.Solution.AddDirectionalVelocityPSD()
+    else:
+        dir_vel = analysis.Solution.AddDirectionalVelocity()
     if dir.ToLower() == 'x':
         dir_vel.NormalOrientation = NormalOrientationType.XAxis
     elif dir.ToLower() == 'y':
@@ -88,6 +91,7 @@ def createDirVelocity(ns, dir):
 
 for a, d in zip(analysisNumbers, DIRECTIONS):
     analysis = Model.Analyses[a]
+    analysis_type = analysis.AnalysisType
     
     # Get all named selections that are grouped under the folder NAMED_SEL_FOLDER
     ns = Model.NamedSelections
