@@ -4,6 +4,10 @@ Calculate Stress Resultants for all beam connections using results from results 
 
 This has been tested on 2024 R2.
 
+
+
+
+
 """
 import wbjn
 import datetime
@@ -16,7 +20,7 @@ user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
 
 ################### Parameters ########################
-analysisNumbers = [0, 2]       # List of analysis systems to apply this script
+analysisNumbers = [2]       # List of analysis systems to apply this script
 
 #  Place units in Ansys Mechanical format for output conversion
 lengthUnitStr = 'in'            # Desired length output unit
@@ -123,6 +127,8 @@ for a in analysisNumbers:
     timeUnit = '[' + timeUnitStr + ']'
     number_sets = model.TimeFreqSupport.NumberSets      # Number of time steps
     timeIds = range(1, number_sets + 1)                 # List of time steps
+    if str(analysis_type).ToLower() == 'spectrum':
+        timeIds = [2]
     timeSets = model.TimeFreqSupport.TimeFreqs.ScopingIds  # List of time steps
     
     # Read mesh in results file
@@ -234,6 +240,10 @@ for a in analysisNumbers:
     for k, v in moment_fields_idx.items():
         smiscOp.inputs.item_index.Connect(v)
         moment_fields[k] = smiscOp.outputs.fields_container.GetData()
+        
+    # 2024 R2, force in lbf, moment in lbf*in
+    solForceQuan = Quantity(1, 'lbf')
+    solMomentQuan = Quantity(1, 'lbf*in')
 
     # Place the axial forces and direct stresses into the data dictionary
     for t in range(len(timeScoping.Ids)):
@@ -310,7 +320,8 @@ for a in analysisNumbers:
     for c in cols:
         data[c] = []
 
-    for eid in sorted(beams.keys()):
+    beam_keys = sorted(beams.keys())
+    for eid in beam_keys:
         for t in range(len(timeScoping.Ids)):
             data[cols[0]].append(beams[eid]['Name'])
             data[cols[1]].append(eid)
@@ -326,7 +337,10 @@ for a in analysisNumbers:
             else:
                 data[cols[9]].append(0)
             data[cols[10]].append(beams[eid]['times'][t])
-            data[cols[11]].append(t+1)
+            if str(analysis_type).ToLower() == 'spectrum': 
+                data[cols[11]].append(2)
+            else:
+                data[cols[11]].append(t+1)
             data[cols[12]].append(beams[eid]['FX'][t] / forceQuan)
             data[cols[13]].append(beams[eid]['Shear Force'][t] / forceQuan)
             data[cols[14]].append(beams[eid]['Torque'][t] / momentQuan)
@@ -345,3 +359,11 @@ for a in analysisNumbers:
     
     print("[INFO] Process completed for " + analysis.Name)
     print("Open File: " + chr(34) + user_dir + chr(92) + file_name_body + ".csv" + chr(34) + '\n')
+    
+    # Create results field
+    result_field = dpf.FieldsFactory.CreateScalarField(len(beam_keys), 'Elemental')
+    [result_field.Add(id = beam_keys[i], data = [(data[cols[12]][i]).Value]) for i in range(len(beam_keys))]
+    result_field.Unit = 'N'
+    
+    op = dpf.operators.utility.forward_fields_container()
+    op.inputs.fields.Connect(result_field)
