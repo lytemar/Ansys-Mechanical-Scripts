@@ -121,6 +121,8 @@ for a in analysisNumbers:
     timeUnit = '[' + timeUnitStr + ']'
     number_sets = model.TimeFreqSupport.NumberSets      # Number of time steps
     timeIds = range(1, number_sets + 1)                 # List of time steps
+    if str(analysis_type).ToLower() == 'spectrum':
+        timeIds = [2]
     timeSets = model.TimeFreqSupport.TimeFreqs.ScopingIds  # List of time steps
     
     # Read mesh in results file
@@ -225,6 +227,10 @@ for a in analysisNumbers:
     for k, v in moment_fields_idx.items():
         moment_fields[k] = dpf.operators.result.mapdl.smisc(time_scoping=timeScoping.Ids, mesh=my_mesh, data_sources=dataSources, item_index = v, mesh_scoping=beamElem_scoping).outputs.fields_container.GetData()
 
+    # Get the units from the fields containers
+    solForceQuan = Quantity(1, force_fields['FX_I'][0].Unit)
+    solMomentQuan = Quantity(1, moment_fields['MY_I'][0].Unit)
+    
     # Place the axial forces and direct stresses into the data dictionary
     for t in range(len(timeScoping.Ids)):
         for i, eid in enumerate(force_fields['FX_I'][t].ScopingIds):
@@ -316,7 +322,10 @@ for a in analysisNumbers:
             else:
                 data[cols[9]].append(0)
             data[cols[10]].append(beams[eid]['times'][t])
-            data[cols[11]].append(t+1)
+            if str(analysis_type).ToLower() == 'spectrum': 
+                data[cols[11]].append(2)
+            else:
+                data[cols[11]].append(t+1)
             data[cols[12]].append(beams[eid]['FX'][t] / forceQuan)
             data[cols[13]].append(beams[eid]['Shear Force'][t] / forceQuan)
             data[cols[14]].append(beams[eid]['Torque'][t] / momentQuan)
