@@ -243,9 +243,11 @@ for a in analysisNumbers:
         moment_fields[k] = smiscOp.outputs.fields_container.GetData()
         
     # 2024 R2, force in lbf, moment in lbf*in if type is random vibration
-    if str(analysis_type).ToLower() == 'spectrum': 
-        solForceQuan = Quantity(1, 'lbf')
-        solMomentQuan = Quantity(1, 'lbf*in')
+    if str(analysis_type).ToLower() == 'spectrum':
+        solForceUnitStr = 'lbf'
+        solMomentUnitStr = 'lbf*in'
+        solForceQuan = Quantity(1, solForceUnitStr)
+        solMomentQuan = Quantity(1, solMomentUnitStr)
 
     # Place the axial forces and direct stresses into the data dictionary
     for t in range(len(timeScoping.Ids)):
@@ -361,11 +363,3 @@ for a in analysisNumbers:
     
     print("[INFO] Process completed for " + analysis.Name)
     print("Open File: " + chr(34) + user_dir + chr(92) + file_name_body + ".csv" + chr(34) + '\n')
-    
-    # Create results field
-    result_field = dpf.FieldsFactory.CreateScalarField(len(beam_keys), 'Elemental')
-    [result_field.Add(id = beam_keys[i], data = [(data[cols[12]][i]).Value]) for i in range(len(beam_keys))]
-    result_field.Unit = 'N'
-    
-    op = dpf.operators.utility.forward_fields_container()
-    op.inputs.fields.Connect(result_field)
