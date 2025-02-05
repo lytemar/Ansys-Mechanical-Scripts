@@ -8,6 +8,7 @@ This has been tested on 2024 R2.
 
 
 
+
 """
 import wbjn
 import datetime
@@ -241,9 +242,10 @@ for a in analysisNumbers:
         smiscOp.inputs.item_index.Connect(v)
         moment_fields[k] = smiscOp.outputs.fields_container.GetData()
         
-    # 2024 R2, force in lbf, moment in lbf*in
-    solForceQuan = Quantity(1, 'lbf')
-    solMomentQuan = Quantity(1, 'lbf*in')
+    # 2024 R2, force in lbf, moment in lbf*in if type is random vibration
+    if str(analysis_type).ToLower() == 'spectrum': 
+        solForceQuan = Quantity(1, 'lbf')
+        solMomentQuan = Quantity(1, 'lbf*in')
 
     # Place the axial forces and direct stresses into the data dictionary
     for t in range(len(timeScoping.Ids)):
