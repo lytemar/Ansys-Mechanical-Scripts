@@ -114,6 +114,13 @@ for a in analysisNumbers:
     solMomentQuan = Quantity(1, solMomentUnitStr)
     solStiffnessQuan = Quantity(1, solStiffnessUnitStr)
     
+    # 2024 R2, force in lbf, moment in lbf*in if type is random vibration
+    if str(analysis_type).ToLower() == 'spectrum':
+        solForceUnitStr = 'lbf'
+        solMomentUnitStr = 'lbf*in'
+        solForceQuan = Quantity(1, solForceUnitStr)
+        solMomentQuan = Quantity(1, solMomentUnitStr)
+    
     # Result Data
     filepath = analysis.ResultFileName
     
@@ -242,13 +249,6 @@ for a in analysisNumbers:
         smiscOp.inputs.item_index.Connect(v)
         moment_fields[k] = smiscOp.outputs.fields_container.GetData()
         
-    # 2024 R2, force in lbf, moment in lbf*in if type is random vibration
-    if str(analysis_type).ToLower() == 'spectrum':
-        solForceUnitStr = 'lbf'
-        solMomentUnitStr = 'lbf*in'
-        solForceQuan = Quantity(1, solForceUnitStr)
-        solMomentQuan = Quantity(1, solMomentUnitStr)
-
     # Place the axial forces and direct stresses into the data dictionary
     for t in range(len(timeScoping.Ids)):
         for i, eid in enumerate(force_fields['FX_I'][t].ScopingIds):
