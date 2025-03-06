@@ -2,12 +2,7 @@
 Calculate Stress Resultants for all beam connections using results from results file.
 =====================================================================================
 
-This has been tested on 2024 R2.
-
-
-
-
-
+This has been tested on 2024 R2 and 2025 R1.
 
 """
 import wbjn
@@ -21,11 +16,11 @@ user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
 
 ################### Parameters ########################
-analysisNumbers = [2]       # List of analysis systems to apply this script
+analysisNumbers = [1,2,3,4,5,7,9,10]       # List of analysis systems to apply this script
 
 #  Place units in Ansys Mechanical format for output conversion
-lengthUnitStr = 'in'            # Desired length output unit
-forceUnitStr = 'lbf'            # Desired force output unit
+lengthUnitStr = 'mm'            # Desired length output unit
+forceUnitStr = 'N'            # Desired force output unit
 if lengthUnitStr.ToLower() == 'in' and forceUnitStr.ToLower() == 'lbf':
     stressUnitStr = 'psi'
 elif lengthUnitStr.ToLower() == 'mm' and forceUnitStr.ToUpper() == 'N':
@@ -116,8 +111,13 @@ for a in analysisNumbers:
     
     # 2024 R2, force in lbf, moment in lbf*in if type is random vibration
     if str(analysis_type).ToLower() == 'spectrum':
-        solForceUnitStr = 'lbf'
-        solMomentUnitStr = 'lbf*in'
+        solForceUnitStr = 'N'
+        solMomentUnitStr = 'N*mm'
+        solForceQuan = Quantity(1, solForceUnitStr)
+        solMomentQuan = Quantity(1, solMomentUnitStr)
+    elif str(analysis_type).ToLower() == 'respnosespectrum':
+        solForceUnitStr = 'N'
+        solMomentUnitStr = 'N*mm'
         solForceQuan = Quantity(1, solForceUnitStr)
         solMomentQuan = Quantity(1, solMomentUnitStr)
     
@@ -136,7 +136,9 @@ for a in analysisNumbers:
     number_sets = model.TimeFreqSupport.NumberSets      # Number of time steps
     timeIds = range(1, number_sets + 1)                 # List of time steps
     if str(analysis_type).ToLower() == 'spectrum':
-        timeIds = [2]
+        timeIds = [4]
+    elif str(analysis_type).ToLower() == 'responsespectrum':
+        timeIds = [1]
     timeSets = model.TimeFreqSupport.TimeFreqs.ScopingIds  # List of time steps
     
     # Read mesh in results file
@@ -228,7 +230,7 @@ for a in analysisNumbers:
     # SBzT = Bending stress on top in Z-dir, SBzB = Bending stress on bottom in Z-dir
     
     #force_fields_idx = {'FX_I': 1, 'FX_J': 14, 'SFz_I': 5, 'SFz_J': 18, 'SFy_I': 6, 'SFy_J': 19}
-    force_fields_idx = {'FX_I': 1, 'SFz_I': 5, 'SFz_J': 18, 'SFy_I': 6, 'SFy_J': 19}
+    force_fields_idx = {'FX_I': 1, 'FX_J': 14, 'SFz_I': 5, 'SFz_J': 18, 'SFy_I': 6, 'SFy_J': 19}
     moment_fields_idx = {'MY_I': 2, 'MY_J': 15, 'MZ_I': 3, 'MZ_J': 16, 'TQ_I': 4, 'TQ_J': 17}
     #moment_fields_idx = {'MY_I': 2, 'MY_J': 15, 'MZ_I': 3, 'MZ_J': 16}
     stress_fields_idx = {'SDIR_I': 31, 'SDIR_J': 36, 'SByT_I': 32, 'SByT_J': 37, 'SByB_I': 33, 'SByB_J': 38, 'SBzT_I': 34, 'SBzT_J': 39, 'SBzB_I': 35, 'SBzB_J': 40}
@@ -252,7 +254,12 @@ for a in analysisNumbers:
     # Place the axial forces and direct stresses into the data dictionary
     for t in range(len(timeScoping.Ids)):
         for i, eid in enumerate(force_fields['FX_I'][t].ScopingIds):
-            f = force_fields['FX_I'][t].Data[i] * solForceQuan
+            F_I = force_fields['FX_I'][t].Data[i]
+            F_J = force_fields['FX_J'][t].Data[i]
+            if abs(F_I) >= abs(F_J):
+                f = F_I * solForceQuan
+            else:
+                f = F_J * solForceQuan
             beams[eid]['FX'].append(f)
             SFz_I = force_fields['SFz_I'][t].Data[i]
             SFy_I = force_fields['SFy_I'][t].Data[i]
@@ -341,10 +348,11 @@ for a in analysisNumbers:
             else:
                 data[cols[9]].append(0)
             data[cols[10]].append(beams[eid]['times'][t])
-            if str(analysis_type).ToLower() == 'spectrum': 
-                data[cols[11]].append(2)
+            if str(analysis_type).ToLower().Contains('spectrum'): 
+                data[cols[11]].append(timeIds[0])
             else:
                 data[cols[11]].append(t+1)
+            #data[cols[11]].append(t+1)    
             data[cols[12]].append(beams[eid]['FX'][t] / forceQuan)
             data[cols[13]].append(beams[eid]['Shear Force'][t] / forceQuan)
             data[cols[14]].append(beams[eid]['Torque'][t] / momentQuan)
@@ -362,4 +370,6 @@ for a in analysisNumbers:
     writeCSV(user_dir + '/' + file_name_body + ".csv", data, cols)
     
     print("[INFO] Process completed for " + analysis.Name)
-    print("Open File: " + chr(34) + user_dir + chr(92) + file_name_body + ".csv" + chr(34) + '\n')
+    print("Open File: " + chr(34) + user_dir + chr(92) + file_name_body + ".csv" + chr(34))
+    print("Analysis Type: " + str(analysis_type)  + '\n')
+    
