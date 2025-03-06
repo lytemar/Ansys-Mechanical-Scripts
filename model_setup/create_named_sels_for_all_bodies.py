@@ -7,8 +7,6 @@ Functions
 createNamedSelection
     Create a named selection with a name and geometry selection
 
-
-
 '''
 import re
 
