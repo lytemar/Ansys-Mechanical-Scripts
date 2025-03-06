@@ -4,7 +4,7 @@ Add beam probes to the solution branch for all circular beam connections
 
 """
 
-analysisNumbers = [0]       # List of analysis systems to apply this script
+analysisNumbers = [2,3,4,5]       # List of analysis systems to apply this script
 
 for a in analysisNumbers:
     analysis = Model.Analyses[a]
