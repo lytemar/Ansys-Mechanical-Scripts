@@ -4,6 +4,7 @@ Calculate Stress Resultants for all beam connections using results from results 
 
 This has been tested on 2024 R2 and 2025 R1.
 
+
 """
 import wbjn
 import datetime
@@ -16,7 +17,7 @@ user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
 
 ################### Parameters ########################
-analysisNumbers = [1,2,3,4,5,7,9,10]       # List of analysis systems to apply this script
+analysisNumbers = [0,2]       # List of analysis systems to apply this script
 
 #  Place units in Ansys Mechanical format for output conversion
 lengthUnitStr = 'mm'            # Desired length output unit
