@@ -1,6 +1,7 @@
 '''
 Rename all bodies, removing all text after the slash
 ====================================================
+
 '''
 
 import re
@@ -24,4 +25,7 @@ with Transaction():             # Suppress GUI update until finish to improve sp
                 Body.Name = "Beam " + re.findall('(?<=Beam\s).*$', Body.Name)[0]
             else:
                 Body.Name = Body.Name.split("\\")[0]
+            # Remove "Midsurface - " at the beginning of the name
+            if "Midsurface" in BName:
+                Body.Name = re.findall('(?<=Midsurface\s-\s).*$', Body.Name)[0]
             body_names.append(Body.Name)
