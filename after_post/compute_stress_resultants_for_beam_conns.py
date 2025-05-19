@@ -91,7 +91,7 @@ def after_post(this, solution):# Do not edit this line
         solMomentUnitStr = 'N*mm'
         solForceQuan = Quantity(1, solForceUnitStr)
         solMomentQuan = Quantity(1, solMomentUnitStr)
-    elif str(analysis_type).ToLower() == 'respnosespectrum':
+    elif str(analysis_type).ToLower() == 'responsespectrum':
         solForceUnitStr = 'N'
         solMomentUnitStr = 'N*mm'
         solForceQuan = Quantity(1, solForceUnitStr)
