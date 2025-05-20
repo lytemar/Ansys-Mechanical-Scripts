@@ -2,11 +2,17 @@
 Get all force and moment reactions for joints using results from results file.
 ==============================================================================
 
-
-
-
-
 """
+
+analysisNumbers = [2]           # LIST OF ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
+
+######################### DESIRED OUTPUT UNITS ##################################
+lengthUnitStr = 'in'            # DESIRED LENGTH OUTPUT UNIT
+forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT
+momentUnitStr = forceUnitStr + '*' + lengthUnitStr                  # Desired moment/torque output unit
+#################################################################################
+
+
 import wbjn
 import datetime
 import csv
@@ -17,14 +23,7 @@ cmd = 'returnValue(GetUserFilesDirectory())'
 user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
 
-################### Parameters ########################
-analysisNumbers = [2]       # List of analysis systems to apply this script
-
 #  Place units in Ansys Mechanical format for output conversion
-lengthUnitStr = 'in'            # Desired length output unit
-forceUnitStr = 'lbf'            # Desired force output unit
-momentUnitStr = forceUnitStr + '*' + lengthUnitStr                  # Desired moment/torque output unit
-
 lengthUnit = '[' + lengthUnitStr + ']'
 forceUnit = '[' + forceUnitStr + ']'            # Desired force output unit
 momentUnit = '[' + momentUnitStr + ']'          # Desired moment/torque output unit
@@ -32,8 +31,6 @@ momentUnit = '[' + momentUnitStr + ']'          # Desired moment/torque output u
 lengthQuan = Quantity(1, lengthUnitStr)         # Desired length output unit quantity
 forceQuan = Quantity(1, forceUnitStr)           # Desired force output unit quantity
 momentQuan = Quantity(1, momentUnitStr)         # Desired moment output unit quantity
-
-################### End Parameters ########################
 
 def writeCSV(filename, data, cols):
     """

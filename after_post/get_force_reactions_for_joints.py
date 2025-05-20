@@ -22,6 +22,11 @@ def after_post(this, solution):# Do not edit this line
     # this.GetCustomPropertyByPath("your_property_group_name/your_property_name/Geometry Selection")
     # this.GetCustomPropertyByPath("your_property_group_name/your_property_name/Named Selection")
 
+    ######################### DESIRED OUTPUT UNITS ##################################
+    lengthUnitStr = 'in'            # DESIRED LENGTH OUTPUT UNIT
+    forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT
+    momentUnitStr = forceUnitStr + '*' + lengthUnitStr                  # Desired moment/torque output unit
+    #################################################################################
 
     import wbjn
     import datetime
@@ -43,10 +48,6 @@ def after_post(this, solution):# Do not edit this line
     model = dpf.Model(dataSource)
 
     #  Place units in Ansys Mechanical format for output conversion
-    lengthUnitStr = 'in'            # Desired length output unit
-    forceUnitStr = 'lbf'            # Desired force output unit
-    momentUnitStr = forceUnitStr + '*' + lengthUnitStr                  # Desired moment/torque output unit
-
     lengthUnit = '[' + lengthUnitStr + ']'
     forceUnit = '[' + forceUnitStr + ']'            # Desired force output unit
     momentUnit = '[' + momentUnitStr + ']'          # Desired moment/torque output unit

@@ -4,8 +4,24 @@ Calculate Stress Resultants for all beam connections using results from results 
 
 This has been tested on 2024 R2 and 2025 R1.
 
-
 """
+
+analysisNumbers = [0, 2]       # LIST OF ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
+
+######################### DESIRED OUTPUT UNITS ##################################
+lengthUnitStr = 'in'            # DESIRED LENGTH OUTPUT UNIT
+forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT
+if lengthUnitStr.ToLower() == 'in' and forceUnitStr.ToLower() == 'lbf':
+    stressUnitStr = 'psi'
+elif lengthUnitStr.ToLower() == 'mm' and forceUnitStr.ToUpper() == 'N':
+    stressUnitStr = 'MPa'
+else:
+    stressUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-2'          # Desired stress output unit
+momentUnitStr = forceUnitStr + '*' + lengthUnitStr                      # Desired moment/torque output unit
+stiffnessUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-1'           # Desired stiffness output unit
+#################################################################################
+
+
 import wbjn
 import datetime
 import csv
@@ -16,21 +32,7 @@ cmd = 'returnValue(GetUserFilesDirectory())'
 user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
 
-################### Parameters ########################
-analysisNumbers = [0,2]       # List of analysis systems to apply this script
-
 #  Place units in Ansys Mechanical format for output conversion
-lengthUnitStr = 'mm'            # Desired length output unit
-forceUnitStr = 'N'            # Desired force output unit
-if lengthUnitStr.ToLower() == 'in' and forceUnitStr.ToLower() == 'lbf':
-    stressUnitStr = 'psi'
-elif lengthUnitStr.ToLower() == 'mm' and forceUnitStr.ToUpper() == 'N':
-    stressUnitStr = 'MPa'
-else:
-    stressUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-2'          # Desired stress output unit
-momentUnitStr = forceUnitStr + '*' + lengthUnitStr                  # Desired moment/torque output unit
-stiffnessUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-1'       # Desired stiffness output unit
-
 lengthUnit = '[' + lengthUnitStr + ']'
 areaUnitStr = lengthUnitStr + '^2'              # Area Unit string
 areaUnit = '[' + areaUnitStr + ']'              # Area Unit
@@ -48,8 +50,6 @@ inertiaQuan = Quantity(1, inertiaUnitStr)       # Desired inertia output unit qu
 forceQuan = Quantity(1, forceUnitStr)           # Desired force output unit quantity
 momentQuan = Quantity(1, momentUnitStr)         # Desired moment output unit quantity
 stressQuan = Quantity(1, stressUnitStr)         # Desired stress output unit quantity
-
-################### End Parameters ########################
 
 def writeCSV(filename, data, cols):
     """
