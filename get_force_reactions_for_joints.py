@@ -134,7 +134,7 @@ for a in analysisNumbers:
     jointNames = [j.Name for j in joint_conns]
     jointTypes = [j.Type for j in joint_conns]
     
-    for j, eid in zip(joint_conns, jointElemIds):
+   for j, eid in zip(joint_conns, jointElemIds):
         if eid != 0:
             joints[eid]={}
             joints[eid]['Name'] = j.Name
@@ -148,9 +148,11 @@ for a in analysisNumbers:
             joints[eid]['FX'] = []
             joints[eid]['FY'] = []
             joints[eid]['FZ'] = []
+            joints[eid]['F_total'] = []
             joints[eid]['MX'] = []
             joints[eid]['MY'] = []
             joints[eid]['MZ'] = []
+            joints[eid]['M_total'] = []
     
     jointElemIds = [j for j in jointElemIds if j != 0]
     
@@ -189,38 +191,40 @@ for a in analysisNumbers:
     # Take negative value from SMISC output to get correct reaction force direction.
     for t in range(len(timeScoping.Ids)):
         for i, eid in enumerate(force_fields['FX'][t].ScopingIds):
+            fx = -force_fields['FX'][t].Data[i]
+            fy = -force_fields['FY'][t].Data[i]
+            fz = -force_fields['FZ'][t].Data[i]
+            mx = -moment_fields['MX'][t].Data[i]
+            my = -moment_fields['MY'][t].Data[i]
+            mz = -moment_fields['MZ'][t].Data[i]
             if joints[eid]['TranslationX'] == Ansys.Mechanical.DataModel.Enums.FixedOrFree.Free:
-                joints[eid]['FX'].append(-force_fields['JEF1'][t].Data[i] * solForceQuan)
-            else:
-                joints[eid]['FX'].append(-force_fields['FX'][t].Data[i] * solForceQuan)
+                fx = -force_fields['JEF1'][t].Data[i]
             if joints[eid]['TranslationY'] == Ansys.Mechanical.DataModel.Enums.FixedOrFree.Free:
-                joints[eid]['FY'].append(-force_fields['JEF2'][t].Data[i] * solForceQuan)
-            else:
-                joints[eid]['FY'].append(-force_fields['FY'][t].Data[i] * solForceQuan)
+                fy = -force_fields['JEF2'][t].Data[i]
             if joints[eid]['TranslationZ'] == Ansys.Mechanical.DataModel.Enums.FixedOrFree.Free:
-                joints[eid]['FZ'].append(-force_fields['JEF3'][t].Data[i] * solForceQuan)
-            else:
-                joints[eid]['FZ'].append(-force_fields['FZ'][t].Data[i] * solForceQuan)
+                fz = -force_fields['JEF3'][t].Data[i]
             if joints[eid]['Rotations'] == Ansys.Mechanical.DataModel.Enums.JointRotationDOFType.FreeAll:
-                joints[eid]['MX'].append(-moment_fields['JEF4'][t].Data[i] * solMomentQuan)
-                joints[eid]['MY'].append(-moment_fields['JEF5'][t].Data[i] * solMomentQuan)
-                joints[eid]['MZ'].append(-moment_fields['JEF6'][t].Data[i] * solMomentQuan)
+                mx = -moment_fields['JEF4'][t].Data[i]
+                my = -moment_fields['JEF5'][t].Data[i]
+                mz = -moment_fields['JEF6'][t].Data[i]
             elif joints[eid]['Rotations'] == Ansys.Mechanical.DataModel.Enums.JointRotationDOFType.FreeX:
-                joints[eid]['MX'].append(-moment_fields['JEF4'][t].Data[i] * solMomentQuan)
-                joints[eid]['MY'].append(-moment_fields['MY'][t].Data[i] * solMomentQuan)
-                joints[eid]['MZ'].append(-moment_fields['MZ'][t].Data[i] * solMomentQuan)
+                mx = -moment_fields['JEF4'][t].Data[i]
             elif joints[eid]['Rotations'] == Ansys.Mechanical.DataModel.Enums.JointRotationDOFType.FreeY:
-                joints[eid]['MY'].append(-moment_fields['JEF5'][t].Data[i] * solMomentQuan)
-                joints[eid]['MX'].append(-moment_fields['MX'][t].Data[i] * solMomentQuan)
-                joints[eid]['MZ'].append(-moment_fields['MZ'][t].Data[i] * solMomentQuan)
+                my = -moment_fields['JEF5'][t].Data[i]
             elif joints[eid]['Rotations'] == Ansys.Mechanical.DataModel.Enums.JointRotationDOFType.FreeZ:
-                joints[eid]['MZ'].append(-moment_fields['JEF6'][t].Data[i] * solMomentQuan)
-                joints[eid]['MX'].append(-moment_fields['MX'][t].Data[i] * solMomentQuan)
-                joints[eid]['MY'].append(-moment_fields['MY'][t].Data[i] * solMomentQuan)
+                mz = -moment_fields['JEF6'][t].Data[i]
             else:
-                joints[eid]['MX'].append(-moment_fields['MX'][t].Data[i] * solMomentQuan)
-                joints[eid]['MY'].append(-moment_fields['MY'][t].Data[i] * solMomentQuan)
-                joints[eid]['MZ'].append(-moment_fields['MZ'][t].Data[i] * solMomentQuan)
+                pass
+            f_total = (fx**2 + fy**2 + fz**2)**0.5
+            m_total = (mx**2 + my**2 + mz**2)**0.5
+            joints[eid]['FX'].append(fx * solForceQuan)
+            joints[eid]['FY'].append(fy * solForceQuan)
+            joints[eid]['FZ'].append(fz * solForceQuan)
+            joints[eid]['F_total'].append(f_total * solForceQuan)
+            joints[eid]['MX'].append(mx * solMomentQuan)
+            joints[eid]['MY'].append(my * solMomentQuan)
+            joints[eid]['MZ'].append(mz * solMomentQuan)
+            joints[eid]['M_total'].append(m_total * solMomentQuan)
             
    
     # Create data dictionary to written to output csv file
@@ -234,9 +238,11 @@ for a in analysisNumbers:
             'FX ' + forceUnit,
             'FY ' + forceUnit,
             'FZ ' + forceUnit,
+            'F Total ' + forceUnit,
             'MX ' + momentUnit,
             'MY ' + momentUnit,
-            'MZ ' + momentUnit]
+            'MZ ' + momentUnit,
+            'M Total ' + momentUnit]
     
     for c in cols:
         data[c] = []
@@ -255,10 +261,11 @@ for a in analysisNumbers:
             data[cols[6]].append(joints[eid]['FX'][t] / forceQuan)
             data[cols[7]].append(joints[eid]['FY'][t] / forceQuan)
             data[cols[8]].append(joints[eid]['FZ'][t] / forceQuan)
-            data[cols[9]].append(joints[eid]['MX'][t] / momentQuan)
-            data[cols[10]].append(joints[eid]['MY'][t] / momentQuan)
-            data[cols[11]].append(joints[eid]['MZ'][t] / momentQuan)
-      
+            data[cols[9]].append(joints[eid]['F_total'][t] / forceQuan)
+            data[cols[10]].append(joints[eid]['MX'][t] / momentQuan)
+            data[cols[11]].append(joints[eid]['MY'][t] / momentQuan)
+            data[cols[12]].append(joints[eid]['MZ'][t] / momentQuan)
+            data[cols[13]].append(joints[eid]['M_total'][t] / momentQuan)
 
     x = datetime.datetime.now()
     
