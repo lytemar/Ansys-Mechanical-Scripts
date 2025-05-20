@@ -123,6 +123,8 @@ for a in analysisNumbers:
     timeIds = range(1, number_sets + 1)                 # List of time steps
     if str(analysis_type).ToLower() == 'spectrum':
         timeIds = [2]
+    elif str(analysis_type).ToLower() == 'responsespectrum':
+        timeIds = [1]
     timeSets = model.TimeFreqSupport.TimeFreqs.ScopingIds  # List of time steps
     
     # Read mesh in results file
@@ -322,8 +324,8 @@ for a in analysisNumbers:
             else:
                 data[cols[9]].append(0)
             data[cols[10]].append(beams[eid]['times'][t])
-            if str(analysis_type).ToLower() == 'spectrum': 
-                data[cols[11]].append(2)
+            if str(analysis_type).ToLower().Contains('spectrum'): 
+                data[cols[11]].append(timeIds[0])
             else:
                 data[cols[11]].append(t+1)
             data[cols[12]].append(beams[eid]['FX'][t] / forceQuan)

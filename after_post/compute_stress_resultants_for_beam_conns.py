@@ -146,7 +146,7 @@ def after_post(this, solution):# Do not edit this line
     number_sets = model.TimeFreqSupport.NumberSets      # Number of time steps
     timeIds = range(1, number_sets + 1)                 # List of time steps
     if str(analysis_type).ToLower() == 'spectrum':
-        timeIds = [4]
+        timeIds = [2]
     elif str(analysis_type).ToLower() == 'responsespectrum':
         timeIds = [1]
     timeSets = model.TimeFreqSupport.TimeFreqs.ScopingIds  # List of time steps
@@ -361,8 +361,7 @@ def after_post(this, solution):# Do not edit this line
             if str(analysis_type).ToLower().Contains('spectrum'): 
                 data[cols[11]].append(timeIds[0])
             else:
-                data[cols[11]].append(t+1)
-            #data[cols[11]].append(t+1)    
+                data[cols[11]].append(t+1) 
             data[cols[12]].append(beams[eid]['FX'][t] / forceQuan)
             data[cols[13]].append(beams[eid]['Shear Force'][t] / forceQuan)
             data[cols[14]].append(beams[eid]['Torque'][t] / momentQuan)
@@ -379,7 +378,3 @@ def after_post(this, solution):# Do not edit this line
     file_name_body = analysis.Name + ' - type=' + str(analysis_type) + ' - Bolt_Results_' + x.strftime("%m") + "-" + x.strftime("%d") + "-" + x.strftime("%y")
     writeCSV(user_dir + '/' + file_name_body + ".csv", data, cols)
     
-    print("[INFO] Process completed for " + analysis.Name)
-    print("Open File: " + chr(34) + user_dir + chr(92) + file_name_body + ".csv" + chr(34))
-    print("Analysis Type: " + str(analysis_type)  + '\n')
-     

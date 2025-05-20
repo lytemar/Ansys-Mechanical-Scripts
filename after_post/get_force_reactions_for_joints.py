@@ -125,7 +125,7 @@ def after_post(this, solution):# Do not edit this line
     number_sets = model.TimeFreqSupport.NumberSets      # Number of time steps
     timeIds = range(1, number_sets + 1)                 # List of time steps
     if str(analysis_type).ToLower() == 'spectrum':
-        timeIds = [4]
+        timeIds = [2]
     elif str(analysis_type).ToLower() == 'responsespectrum':
         timeIds = [1]
     timeSets = model.TimeFreqSupport.TimeFreqs.ScopingIds  # List of time steps
