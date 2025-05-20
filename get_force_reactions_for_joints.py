@@ -7,8 +7,8 @@ Get all force and moment reactions for joints using results from results file.
 analysisNumbers = [2]           # LIST OF ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
 
 ######################### DESIRED OUTPUT UNITS ##################################
-lengthUnitStr = 'in'            # DESIRED LENGTH OUTPUT UNIT
-forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT
+lengthUnitStr = 'in'            # DESIRED LENGTH OUTPUT UNIT (usually 'in' or 'mm')
+forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT (usually 'lbf' or 'N')
 momentUnitStr = forceUnitStr + '*' + lengthUnitStr                  # Desired moment/torque output unit
 #################################################################################
 

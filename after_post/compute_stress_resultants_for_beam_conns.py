@@ -23,8 +23,8 @@ def after_post(this, solution):# Do not edit this line
     # this.GetCustomPropertyByPath("your_property_group_name/your_property_name/Named Selection")
 
     ######################### DESIRED OUTPUT UNITS ##################################
-    lengthUnitStr = 'in'            # DESIRED LENGTH OUTPUT UNIT
-    forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT
+    lengthUnitStr = 'in'            # DESIRED LENGTH OUTPUT UNIT (usually 'in' or 'mm')
+    forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT (usually 'lbf' or 'N')
     if lengthUnitStr.ToLower() == 'in' and forceUnitStr.ToLower() == 'lbf':
         stressUnitStr = 'psi'
     elif lengthUnitStr.ToLower() == 'mm' and forceUnitStr.ToUpper() == 'N':

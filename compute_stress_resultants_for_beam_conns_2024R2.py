@@ -9,8 +9,8 @@ This has been tested on 2024 R2 and 2025 R1.
 analysisNumbers = [0, 2]       # LIST OF ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
 
 ######################### DESIRED OUTPUT UNITS ##################################
-lengthUnitStr = 'in'            # DESIRED LENGTH OUTPUT UNIT
-forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT
+lengthUnitStr = 'in'            # DESIRED LENGTH OUTPUT UNIT (usually 'in' or 'mm')
+forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT (usually 'lbf' or 'N')
 if lengthUnitStr.ToLower() == 'in' and forceUnitStr.ToLower() == 'lbf':
     stressUnitStr = 'psi'
 elif lengthUnitStr.ToLower() == 'mm' and forceUnitStr.ToUpper() == 'N':
