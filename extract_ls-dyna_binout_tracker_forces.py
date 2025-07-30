@@ -6,10 +6,14 @@ This has been tested on 2025 R2.
 
 
 
+
+
+
+
 """
 
 analysisNumbers = [0]       # LIST OF ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
-COORD_SYS_NAME = 'Coordinate System'    # Name of the (Cartesian) coordinate system about which to resolve the forces
+COORD_SYS_NAME = 'Origin'    # Name of the (Cartesian) coordinate system about which to resolve the forces
 RESULTS_FOLDER = 'Directional Deformations'  # Name of results TreeGrouping Folder
 
 ######################### DESIRED OUTPUT UNITS ##################################
@@ -32,6 +36,7 @@ import mech_dpf
 import Ans.DataProcessing as dpf
 import materials
 import math
+import Ansys.Mechanical.DataModel.Utilities as ans_utils
 cmd = 'returnValue(GetUserFilesDirectory())'
 user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
@@ -182,6 +187,7 @@ transformation.Transpose()
 # Loop through the analyses
 for a in analysisNumbers:
     analysis = Model.Analyses[a]
+    solution = analysis.Solution
     charts = DataModel.GetObjectsByType(DataModelObjectCategory.Chart)
     
     # Get the current units
@@ -227,6 +233,13 @@ for a in analysisNumbers:
         res[direction]['Deformation'] = [float(z)*len_conv for z in resAvg[1:-1]]
         res[direction]['DeformationUnit'] = lengthUnit
     ref_times = [float(t) for t in timeCol[1:-1]]
+    
+    # Compute the total deformation
+    vec3Ds = []
+    res['Total Deformation'] = []
+    for (x,y,z) in zip(res['XAxis']['Deformation'], res['YAxis']['Deformation'], res['ZAxis']['Deformation']):
+        vec = Vector3D(x, y, z)
+        res['Total Deformation'].append(vec.Magnitude) 
     
     # Populate tracker results
     # Sample the force binout vectors at the same times as the directional deformation outputs
@@ -276,7 +289,8 @@ for a in analysisNumbers:
             'Force Magnitude ' + forceUnit,
             'X-Dir Deform (local csys) ' + lengthUnit,
             'Y-Dir Deform (local csys) ' + lengthUnit,
-            'Z-Dir Deform (local csys) ' + lengthUnit]
+            'Z-Dir Deform (local csys) ' + lengthUnit,
+            'Total Deformation ' + lengthUnit]
     
     for c in cols:
         data[c] = []
@@ -293,6 +307,28 @@ for a in analysisNumbers:
     data[cols[8]] = res['XAxis']['Deformation']
     data[cols[9]] = res['YAxis']['Deformation']
     data[cols[10]] = res['ZAxis']['Deformation']
+    data[cols[11]] = res['Total Deformation']
+    
+    # Create a chart of the Force Magnitude versus Total Deformation
+    chart = solution.AddLineChart2D()
+    var_x = ans_utils.Charts.ChartVariable(res['Total Deformation'], 'Length', lengthUnitStr)
+    var_y = ans_utils.Charts.ChartVariable(res['Force Magnitude'], 'Force', forceUnitStr)
+    ds = ans_utils.Dataset.Dataset2D(var_x, var_y)
+    chart.Chart.AddDataset(ds, 'Force Magnitude vs. Total Deformation')
+    x_axis_options = chart.Chart.XAxisDisplayOptions
+    x_axis_options.AxisLabel = "Total Deformation"
+    x_axis_options.ShowGridLines = True
+    y_axis_options = chart.Chart.YAxisDisplayOptions
+    y_axis_options.AxisLabel = "Force Magnitude"
+    y_axis_options.ShowGridLines = True
+    label_collection = chart.Chart.GetLabelCollectionForDataset(ds)
+    label = label_collection.CreateLabelsAtYCoordinate(Quantity(max(res['Force Magnitude']), forceUnitStr))
+    labels = label_collection.Labels
+    labels[len(labels)-1].Move(Quantity(1.75, 'in'), Quantity(max(res['Force Magnitude']), forceUnitStr))
+    if len(labels) > 1:
+        for j in range(len(labels)-1):
+            label_collection.DeleteLabel(labels[j])
+    chart.Name = 'Force Magnitude vs. Total Deformation'
     
     x = datetime.datetime.now()
     
