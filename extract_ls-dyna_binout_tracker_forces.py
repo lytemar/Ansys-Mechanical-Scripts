@@ -3,13 +3,6 @@ Extract LS-DYNA Binout Tracker Forces from Solution Information and Compute the 
 ===============================================================================================================
 
 This has been tested on 2025 R2.
-
-
-
-
-
-
-
 """
 
 analysisNumbers = [0]       # LIST OF ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
@@ -242,8 +235,7 @@ for a in analysisNumbers:
         res['Total Deformation'].append(vec.Magnitude) 
     
     # Populate tracker results
-    # Sample the force binout vectors at the same times as the directional deformation outputs
-    # Linear interpolation would be best but not implemented here
+    # Sample the force binout vectors and linearly interpolate to match the output times of the Directional Deformations
     for trk in trkrs:
         trk.Activate()
         cname = trk.LSDYNAComponentName + ' global csys'   # one of 'x_force', 'y_force' or 'z_force'
