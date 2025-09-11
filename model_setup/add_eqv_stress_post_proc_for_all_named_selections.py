@@ -2,13 +2,14 @@
 Add equivalent stress post-processing items for all named selections within a tree grouping.
 ============================================================================================
 
+
 """
 
 #import time
 #StartTime = time.time()
 
 ################### Parameters ########################
-analysisNumbers = [0, 2]       # List of analysis systems to apply this script
+analysisNumbers = [3]       # List of analysis systems to apply this script
 NAMED_SEL_FOLDER = 'Results Scoping'        # Named selection folder name containing NS used for results scoping
 ################### End Parameters ########################
 
@@ -68,6 +69,8 @@ def createEqvStress(ns):
     # add an equivalent stress
     if str(analysis_type).ToLower() == "spectrum":
         eqv_stress = analysis.Solution.AddEquivalentStressPSD()
+    elif str(analysis_type).ToLower() == 'responsespectrum':
+        eqv_stress = analysis.Solution.AddEquivalentStressRS()
     else:
         eqv_stress = analysis.Solution.AddEquivalentStress()
     
