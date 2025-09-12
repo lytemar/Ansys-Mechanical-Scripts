@@ -3,6 +3,7 @@ Calculate Stress Resultants for all beam connections using results from results 
 =====================================================================================
 
 This has been tested on 2024 R2 and 2025 R1.
+** It doesn't work for prestressed Response Spectrum Analysis as this time**
 
 """
 
@@ -243,10 +244,8 @@ def after_post(this, solution):# Do not edit this line
     # SByT = Bending stress on top in Y-dir, SByB = Bending stress on bottom in Y-dir
     # SBzT = Bending stress on top in Z-dir, SBzB = Bending stress on bottom in Z-dir
     
-    #force_fields_idx = {'FX_I': 1, 'FX_J': 14, 'SFz_I': 5, 'SFz_J': 18, 'SFy_I': 6, 'SFy_J': 19}
     force_fields_idx = {'FX_I': 1, 'FX_J': 14, 'SFz_I': 5, 'SFz_J': 18, 'SFy_I': 6, 'SFy_J': 19}
     moment_fields_idx = {'MY_I': 2, 'MY_J': 15, 'MZ_I': 3, 'MZ_J': 16, 'TQ_I': 4, 'TQ_J': 17}
-    #moment_fields_idx = {'MY_I': 2, 'MY_J': 15, 'MZ_I': 3, 'MZ_J': 16}
     stress_fields_idx = {'SDIR_I': 31, 'SDIR_J': 36, 'SByT_I': 32, 'SByT_J': 37, 'SByB_I': 33, 'SByB_J': 38, 'SBzT_I': 34, 'SBzT_J': 39, 'SBzB_I': 35, 'SBzB_J': 40}
     
     force_fields = {}
