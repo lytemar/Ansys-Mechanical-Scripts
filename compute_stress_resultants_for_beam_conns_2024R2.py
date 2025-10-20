@@ -5,13 +5,15 @@ Calculate Stress Resultants for all beam connections using results from results 
 This has been tested on 2024 R2 and 2025 R1.
 ** It doesn't work for prestressed Response Spectrum Analysis as this time**
 
+
 """
 
-analysisNumbers = [3]       # LIST OF ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
+analysisNumbers = [2]       # LIST OF ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
 
 ######################### DESIRED OUTPUT UNITS ##################################
 lengthUnitStr = 'in'            # DESIRED LENGTH OUTPUT UNIT (usually 'in' or 'mm')
 forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT (usually 'lbf' or 'N')
+CALCULATE_STIFFNESS = 'y'       # USE ELASTIC CONSTANTS TO CALCULATE STIFFNESS (must be one of 'y' or 'n')
 if lengthUnitStr.ToLower() == 'in' and forceUnitStr.ToLower() == 'lbf':
     stressUnitStr = 'psi'
 elif lengthUnitStr.ToLower() == 'mm' and forceUnitStr.ToUpper() == 'N':
@@ -156,17 +158,18 @@ for a in analysisNumbers:
     timeScoping.Location = 'Time'
     
     # Get all materials and properties
-    mats = {}
-    matList = ExtAPI.DataModel.Project.Model.Materials.Children
-    matNames = [m.Name for m in matList]
-    matEDs = [m.GetEngineeringDataMaterial() for m in matList]
-    matProps = [materials.GetListMaterialProperties(ed) for ed in matEDs]
-    for n, ed, p in zip(matNames, matEDs, matProps):
-        if 'Elasticity' in p:
-            elasticity = materials.GetMaterialPropertyByName(ed, "Elasticity")
-            if "Young's Modulus" in elasticity:
-                mats[n] = {}
-                mats[n]['ElasticModulus'] = elasticity["Young's Modulus"][1] * Quantity('1 ['+ elasticity["Young's Modulus"][0] + ']')
+    if CALCULATE_STIFFNESS == 'y'.ToLower():
+        mats = {}
+        matList = ExtAPI.DataModel.Project.Model.Materials.Children
+        matNames = [m.Name for m in matList]
+        matEDs = [m.GetEngineeringDataMaterial() for m in matList]
+        matProps = [materials.GetListMaterialProperties(ed) for ed in matEDs]
+        for n, ed, p in zip(matNames, matEDs, matProps):
+            if 'Elasticity' in p:
+                elasticity = materials.GetMaterialPropertyByName(ed, "Elasticity")
+                if "Young's Modulus" in elasticity:
+                    mats[n] = {}
+                    mats[n]['ElasticModulus'] = elasticity["Young's Modulus"][1] * Quantity('1 ['+ elasticity["Young's Modulus"][0] + ']')
 
     # Get all beams and the element information
     beams = {}
@@ -194,10 +197,11 @@ for a in analysisNumbers:
             beams[eid]['dia'] = 2.0*rad
             beams[eid]['I'] = pi*rad**4/4.0
             beams[eid]['J'] = pi*rad**4/2.0
-            if b.Material in mats.keys():
-                modulus = mats[b.Material]['ElasticModulus']
-                stiffness = modulus*area/l
-                beams[eid]['Stiffness'] = stiffness
+            if CALCULATE_STIFFNESS == 'y'.ToLower():
+                if b.Material in mats.keys():
+                    modulus = mats[b.Material]['ElasticModulus']
+                    stiffness = modulus*area/l
+                    beams[eid]['Stiffness'] = stiffness
             beams[eid]['times'] = all_times
             beams[eid]['FX'] = []
             beams[eid]['Shear Force'] = []
@@ -308,27 +312,49 @@ for a in analysisNumbers:
     
     # Create data dictionary to written to output csv file
     data = {}
-    cols = ['Beam Connection Name',
-            'Beam Element ID',
-            'Beam Connection ID',
-            'Material',
-            'Diameter ' + lengthUnit,
-            'Length ' + lengthUnit,
-            'Cross-Sectional Area ' + areaUnit,
-            'Moment of Inertia ' + inertiaUnit,
-            'Polar Moment of Inertia ' + inertiaUnit,
-            'Stiffness ' + stiffnessUnit,
-            'Time ' + timeUnit,
-            'Set',
-            'Axial Force ' + forceUnit,
-            'Shear Force ' + forceUnit,
-            'Torque ' + momentUnit,
-            'Bending Moment ' + momentUnit,
-            'Equivalent Stress ' + stressUnit,
-            'Direct Stress ' + stressUnit,
-            'Bending Stress ' + stressUnit,
-            'Combined Stress ' + stressUnit,
-            'Torsional Stress ' + stressUnit]
+    if CALCULATE_STIFFNESS == 'y'.ToLower():
+        cols = ['Beam Connection Name',
+                'Beam Element ID',
+                'Beam Connection ID',
+                'Material',
+                'Diameter ' + lengthUnit,
+                'Length ' + lengthUnit,
+                'Cross-Sectional Area ' + areaUnit,
+                'Moment of Inertia ' + inertiaUnit,
+                'Polar Moment of Inertia ' + inertiaUnit,
+                'Stiffness ' + stiffnessUnit,
+                'Time ' + timeUnit,
+                'Set',
+                'Axial Force ' + forceUnit,
+                'Shear Force ' + forceUnit,
+                'Torque ' + momentUnit,
+                'Bending Moment ' + momentUnit,
+                'Equivalent Stress ' + stressUnit,
+                'Direct Stress ' + stressUnit,
+                'Bending Stress ' + stressUnit,
+                'Combined Stress ' + stressUnit,
+                'Torsional Stress ' + stressUnit]
+    else:
+        cols = ['Beam Connection Name',
+                'Beam Element ID',
+                'Beam Connection ID',
+                'Material',
+                'Diameter ' + lengthUnit,
+                'Length ' + lengthUnit,
+                'Cross-Sectional Area ' + areaUnit,
+                'Moment of Inertia ' + inertiaUnit,
+                'Polar Moment of Inertia ' + inertiaUnit,
+                'Time ' + timeUnit,
+                'Set',
+                'Axial Force ' + forceUnit,
+                'Shear Force ' + forceUnit,
+                'Torque ' + momentUnit,
+                'Bending Moment ' + momentUnit,
+                'Equivalent Stress ' + stressUnit,
+                'Direct Stress ' + stressUnit,
+                'Bending Stress ' + stressUnit,
+                'Combined Stress ' + stressUnit,
+                'Torsional Stress ' + stressUnit]
     
     for c in cols:
         data[c] = []
@@ -345,24 +371,29 @@ for a in analysisNumbers:
             data[cols[6]].append(beams[eid]['area'] / areaQuan)
             data[cols[7]].append(beams[eid]['I'] / inertiaQuan)
             data[cols[8]].append(beams[eid]['J'] / inertiaQuan)
-            if beams[eid]['Material'] in mats.keys():
-                data[cols[9]].append(beams[eid]['Stiffness'] / stiffnessQuan)
+            p = 9       # index of next column
+            if CALCULATE_STIFFNESS == 'y'.ToLower():
+                q = 1
+                if beams[eid]['Material'] in mats.keys():
+                    data[cols[p]].append(beams[eid]['Stiffness'] / stiffnessQuan)
+                else:
+                    data[cols[p]].append(0)
             else:
-                data[cols[9]].append(0)
-            data[cols[10]].append(beams[eid]['times'][t])
+                q = 0
+            data[cols[p + q]].append(beams[eid]['times'][t])
             if str(analysis_type).ToLower().Contains('spectrum'): 
-                data[cols[11]].append(timeSets[t])
+                data[cols[p + q + 1]].append(timeSets[t])
             else:
-                data[cols[11]].append(t+1)
-            data[cols[12]].append(beams[eid]['FX'][t] / forceQuan)
-            data[cols[13]].append(beams[eid]['Shear Force'][t] / forceQuan)
-            data[cols[14]].append(beams[eid]['Torque'][t] / momentQuan)
-            data[cols[15]].append(beams[eid]['Bending Moment'][t] / momentQuan)
-            data[cols[16]].append(beams[eid]['Equivalent Stress'][t] / stressQuan)
-            data[cols[17]].append(beams[eid]['Direct Stress'][t] / stressQuan)
-            data[cols[18]].append(beams[eid]['Bending Stress'][t] / stressQuan)
-            data[cols[19]].append(beams[eid]['Combined Stress'][t] / stressQuan)
-            data[cols[20]].append(beams[eid]['Torsional Stress'][t] / stressQuan)
+                data[cols[p + q + 1]].append(t+1)
+            data[cols[p + q + 2]].append(beams[eid]['FX'][t] / forceQuan)
+            data[cols[p + q + 3]].append(beams[eid]['Shear Force'][t] / forceQuan)
+            data[cols[p + q + 4]].append(beams[eid]['Torque'][t] / momentQuan)
+            data[cols[p + q + 5]].append(beams[eid]['Bending Moment'][t] / momentQuan)
+            data[cols[p + q + 6]].append(beams[eid]['Equivalent Stress'][t] / stressQuan)
+            data[cols[p + q + 7]].append(beams[eid]['Direct Stress'][t] / stressQuan)
+            data[cols[p + q + 8]].append(beams[eid]['Bending Stress'][t] / stressQuan)
+            data[cols[p + q + 9]].append(beams[eid]['Combined Stress'][t] / stressQuan)
+            data[cols[p + q + 10]].append(beams[eid]['Torsional Stress'][t] / stressQuan)
         
 
     x = datetime.datetime.now()
