@@ -9,6 +9,9 @@ Add total deformation post-processing items for all named selections within a tr
 ################### Parameters ########################
 analysisNumbers = [0]       # List of analysis systems to apply this script
 NAMED_SEL_FOLDER = 'Results Scoping'        # Named selection folder name containing NS used for results scoping
+# Set the scale factor for Random Vibration Analyses
+# The last part of the Enumeration can be (Sigma1, Sigma2, Sigma3, UserDefined)
+SCALE_FACTOR = Ansys.Mechanical.DataModel.Enums.ScaleFactorType.Sigma3
 ################### End Parameters ########################
 
 def findTreeGroupingFolders(item):
@@ -66,6 +69,7 @@ def createTotalDeformation(ns):
     """
     # add a total deformation
     total_def = analysis.Solution.AddTotalDeformation()
+    total_def.ScaleFactor = SCALE_FACTOR
     
     # scope to Named Selection
     total_def.Location = ns
@@ -87,6 +91,10 @@ for a in analysisNumbers:
         # Rename based on definition
     
     [e.RenameBasedOnDefinition() for e in total_defs]
+    for e in total_defs:
+        fig = e.AddFigure()
+        fig.Name = e.Name
+        fig.Text = e.Name
     
     # Put all total deformation items into a group folder
     group = Tree.Group(total_defs)
