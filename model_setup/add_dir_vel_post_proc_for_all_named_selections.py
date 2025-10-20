@@ -10,7 +10,10 @@ import sys
 ################### Parameters ########################
 analysisNumbers = [2, 3, 4]       # List of analysis systems to apply this script
 NAMED_SEL_FOLDER = 'Results Scoping'        # Named selection folder name containing NS used for results scoping
-DIRECTIONS = ['Y', 'X', 'Z']         # Direction axis:  one of 'X', 'Y', or 'Z'
+DIRECTIONS = ['X', 'Y', 'Z']         # Direction axis:  one of 'X', 'Y', or 'Z'
+# Set the scale factor for Random Vibration Analyses
+# The last part of the Enumeration can be (Sigma1, Sigma2, Sigma3, UserDefined)
+SCALE_FACTOR = Ansys.Mechanical.DataModel.Enums.ScaleFactorType.Sigma3
 ################### End Parameters ########################
 
 def findTreeGroupingFolders(item):
@@ -71,6 +74,7 @@ def createDirVelocity(ns, dir):
     # add a total deformation
     if str(analysis_type).ToLower() == "spectrum":
         dir_vel = analysis.Solution.AddDirectionalVelocityPSD()
+        dir_vel.ScaleFactor = SCALE_FACTOR
     else:
         dir_vel = analysis.Solution.AddDirectionalVelocity()
     if dir.ToLower() == 'x':
@@ -89,25 +93,31 @@ def createDirVelocity(ns, dir):
     return dir_vel
 
 
-for a, d in zip(analysisNumbers, DIRECTIONS):
+for a in analysisNumbers:
     analysis = Model.Analyses[a]
     analysis_type = analysis.AnalysisType
     
-    # Get all named selections that are grouped under the folder NAMED_SEL_FOLDER
-    ns = Model.NamedSelections
-    nsGroup = getNamedSelectionsGroupByName(NAMED_SEL_FOLDER)
-    nsChildren = [n for n in nsGroup.Children]
+    for d in DIRECTIONS:
     
-    with Transaction():             # Suppress GUI update until complete to speed the process
-        # Create directional velocity post processing items and collect in a list
-        total_defs = [createDirVelocity(ns, d) for ns in nsChildren]
-        # Rename based on definition
-    
-    [e.RenameBasedOnDefinition() for e in total_defs]
-    
-    # Put all directional velocity items into a group folder
-    group = Tree.Group(total_defs)
-    group.Name = "Directional Velocity for Named Selections: " + NAMED_SEL_FOLDER
+        # Get all named selections that are grouped under the folder NAMED_SEL_FOLDER
+        ns = Model.NamedSelections
+        nsGroup = getNamedSelectionsGroupByName(NAMED_SEL_FOLDER)
+        nsChildren = [n for n in nsGroup.Children]
+        
+        with Transaction():             # Suppress GUI update until complete to speed the process
+            # Create directional velocity post processing items and collect in a list
+            dir_vels = [createDirVelocity(ns, d) for ns in nsChildren]
+            # Rename based on definition
+        
+        [e.RenameBasedOnDefinition() for e in dir_vels]
+        for e in dir_vels:
+            fig = e.AddFigure()
+            fig.Name = e.Name
+            fig.Text = e.Name
+        
+        # Put all directional velocity items into a group folder
+        group = Tree.Group(dir_vels)
+        group.Name = d + "-Axis Directional Velocity for Named Selections: " + NAMED_SEL_FOLDER
     
     analysis.Solution.EvaluateAllResults()
     

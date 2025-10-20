@@ -2,15 +2,19 @@
 Add directional deformation post-processing items for all named selections within a tree grouping.
 ==================================================================================================
 
+
 """
 #import time
 #StartTime = time.time()
 import sys
 
 ################### Parameters ########################
-analysisNumbers = [2, 3, 4]       # List of analysis systems to apply this script
+analysisNumbers = [2]       # List of analysis systems to apply this script
 NAMED_SEL_FOLDER = 'Results Scoping'        # Named selection folder name containing NS used for results scoping
-DIRECTIONS = ['Y', 'X', 'Z']         # Direction axis:  one of 'X', 'Y', or 'Z'
+DIRECTIONS = ['X', 'Y', 'Z']         # Direction axis:  one of 'X', 'Y', or 'Z'
+# Set the scale factor for Random Vibration Analyses
+# The last part of the Enumeration can be (Sigma1, Sigma2, Sigma3, UserDefined)
+SCALE_FACTOR = Ansys.Mechanical.DataModel.Enums.ScaleFactorType.Sigma3
 ################### End Parameters ########################
 
 def findTreeGroupingFolders(item):
@@ -70,6 +74,7 @@ def createDirDeformation(ns, dir):
     """
     # add a directional deformation
     dir_def = analysis.Solution.AddDirectionalDeformation()
+    dir_def.ScaleFactor = SCALE_FACTOR
     if dir.ToLower() == 'x':
         dir_def.NormalOrientation = NormalOrientationType.XAxis
     elif dir.ToLower() == 'y':
@@ -86,24 +91,31 @@ def createDirDeformation(ns, dir):
     return dir_def
 
 
-for a, d in zip(analysisNumbers, DIRECTIONS):
+for a in analysisNumbers:
     analysis = Model.Analyses[a]
     
-    # Get all named selections that are grouped under the folder NAMED_SEL_FOLDER
-    ns = Model.NamedSelections
-    nsGroup = getNamedSelectionsGroupByName(NAMED_SEL_FOLDER)
-    nsChildren = [n for n in nsGroup.Children]
+    for d in DIRECTIONS:
     
-    with Transaction():             # Suppress GUI update until complete to speed the process
-        # Create directional deformation post processing items and collect in a list
-        total_defs = [createDirDeformation(ns, d) for ns in nsChildren]
-        # Rename based on definition
-    
-    [e.RenameBasedOnDefinition() for e in total_defs]
-    
-    # Put all directional deformation items into a group folder
-    group = Tree.Group(total_defs)
-    group.Name = "Directional Deformation for Named Selections: " + NAMED_SEL_FOLDER
+        # Get all named selections that are grouped under the folder NAMED_SEL_FOLDER
+        ns = Model.NamedSelections
+        nsGroup = getNamedSelectionsGroupByName(NAMED_SEL_FOLDER)
+        nsChildren = [n for n in nsGroup.Children]
+        
+        with Transaction():             # Suppress GUI update until complete to speed the process
+            # Create directional deformation post processing items and collect in a list
+            dir_defs = [createDirDeformation(ns, d) for ns in nsChildren]
+            # Rename based on definition
+        
+        [e.RenameBasedOnDefinition() for e in dir_defs]
+        # For each results object, add a figure and rename
+        for e in dir_defs:
+            fig = e.AddFigure()
+            fig.Name = e.Name
+            fig.Text = e.Name
+        
+        # Put all directional deformation items into a group folder
+        group = Tree.Group(dir_defs)
+        group.Name = d + "-Axis Directional Deformation for Named Selections: " + NAMED_SEL_FOLDER
     
     analysis.Solution.EvaluateAllResults()
     

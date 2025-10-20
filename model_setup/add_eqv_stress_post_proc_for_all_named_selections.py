@@ -11,6 +11,9 @@ Add equivalent stress post-processing items for all named selections within a tr
 ################### Parameters ########################
 analysisNumbers = [3]       # List of analysis systems to apply this script
 NAMED_SEL_FOLDER = 'Results Scoping'        # Named selection folder name containing NS used for results scoping
+# Set the scale factor for Random Vibration Analyses
+# The last part of the Enumeration can be (Sigma1, Sigma2, Sigma3, UserDefined)
+SCALE_FACTOR = Ansys.Mechanical.DataModel.Enums.ScaleFactorType.Sigma3
 ################### End Parameters ########################
 
 def findTreeGroupingFolders(item):
@@ -69,6 +72,7 @@ def createEqvStress(ns):
     # add an equivalent stress
     if str(analysis_type).ToLower() == "spectrum":
         eqv_stress = analysis.Solution.AddEquivalentStressPSD()
+        eqv_stress.ScaleFactor = SCALE_FACTOR 
     elif str(analysis_type).ToLower() == 'responsespectrum':
         eqv_stress = analysis.Solution.AddEquivalentStressRS()
     else:
@@ -95,6 +99,10 @@ for a in analysisNumbers:
         # Rename based on definition
     
     [e.RenameBasedOnDefinition() for e in eqv_stresses]
+    for e in eqv_stresses:
+        fig = e.AddFigure()
+        fig.Name = e.Name
+        fig.Text = e.Name
     
     # Put all equivalent stress items into a group folder
     group = Tree.Group(eqv_stresses)
