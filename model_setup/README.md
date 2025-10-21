@@ -44,3 +44,7 @@ These scripts are run as Scripting objects from the Automation tab to automate r
 
 - ### remove_suffix_from_part_names.py
   Remove the suffix for part or body names after the `\` in the Geometry Branch, e.g. `Box\Solid` becomes `Box`.
+  
+- ### save_all_figures_to_file.py
+  Export all figures as PNG images to an `images[<analysis name and date>` subdirectory of the `user_files` directory.
+  
