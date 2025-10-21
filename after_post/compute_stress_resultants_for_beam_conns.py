@@ -3,8 +3,6 @@ Calculate Stress Resultants for all beam connections using results from results 
 =====================================================================================
 
 This has been tested on 2024 R2 and 2025 R1.
-** It doesn't work for prestressed Response Spectrum Analysis as this time**
-
 """
 
 def after_post(this, solution):# Do not edit this line
