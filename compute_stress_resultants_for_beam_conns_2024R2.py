@@ -3,24 +3,17 @@ Calculate Stress Resultants for all beam connections using results from results 
 =====================================================================================
 
 This has been tested on 2024 R2 and 2025 R1.
+
 """
 
-analysisNumbers = [2]       # LIST OF ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
-
-######################### DESIRED OUTPUT UNITS ##################################
+################################## USER INPUTS ##################################
+analysisNumbers = [2]           # LIST OF ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
 lengthUnitStr = 'in'            # DESIRED LENGTH OUTPUT UNIT (usually 'in' or 'mm')
 forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT (usually 'lbf' or 'N')
 CALCULATE_STIFFNESS = 'y'       # USE ELASTIC CONSTANTS TO CALCULATE STIFFNESS (must be one of 'y' or 'n')
-if lengthUnitStr.ToLower() == 'in' and forceUnitStr.ToLower() == 'lbf':
-    stressUnitStr = 'psi'
-elif lengthUnitStr.ToLower() == 'mm' and forceUnitStr.ToUpper() == 'N':
-    stressUnitStr = 'MPa'
-else:
-    stressUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-2'          # Desired stress output unit
-momentUnitStr = forceUnitStr + '*' + lengthUnitStr                      # Desired moment/torque output unit
-stiffnessUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-1'           # Desired stiffness output unit
+RANDOM_VIBRATION_SIGMA = 3      # SCALE FACTOR (SIGMA) FOR RESULTS OUTPUT
+ANSYS_VER = '2024 R2'           # Ansys version ('2024 R2', '2025 R1', '2025 R2')
 #################################################################################
-
 
 import wbjn
 import datetime
@@ -31,6 +24,17 @@ import materials
 cmd = 'returnValue(GetUserFilesDirectory())'
 user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
+
+ 
+if lengthUnitStr.ToLower() == 'in' and forceUnitStr.ToLower() == 'lbf':
+    stressUnitStr = 'psi'
+elif lengthUnitStr.ToLower() == 'mm' and forceUnitStr.ToUpper() == 'N':
+    stressUnitStr = 'MPa'
+else:
+    stressUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-2'          # Desired stress output unit
+momentUnitStr = forceUnitStr + '*' + lengthUnitStr                      # Desired moment/torque output unit
+stiffnessUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-1'           # Desired stiffness output unit
+
 
 #  Place units in Ansys Mechanical format for output conversion
 lengthUnit = '[' + lengthUnitStr + ']'
@@ -116,11 +120,17 @@ for a in analysisNumbers:
         solMomentUnitStr = 'N*mm'
         solForceQuan = Quantity(1, solForceUnitStr)
         solMomentQuan = Quantity(1, solMomentUnitStr)
-    elif str(analysis_type).ToLower() == 'respnosespectrum':
+    elif str(analysis_type).ToLower() == 'responsespectrum':
         solForceUnitStr = 'N'
         solMomentUnitStr = 'N*mm'
         solForceQuan = Quantity(1, solForceUnitStr)
         solMomentQuan = Quantity(1, solMomentUnitStr)
+    
+    # Set the scale factor = 1 for non Random Vibration analyses
+    if str(analysis_type).ToLower() == 'spectrum':
+        scale_factor = RANDOM_VIBRATION_SIGMA
+    else:
+        scale_factor = 1
     
     # Result Data
     filepath = analysis.ResultFileName
@@ -201,7 +211,9 @@ for a in analysisNumbers:
                     beams[eid]['Stiffness'] = stiffness
             beams[eid]['times'] = all_times
             beams[eid]['FX'] = []
-            beams[eid]['Shear Force'] = []
+            beams[eid]['SF_Y'] = []
+            beams[eid]['SF_Z'] = []
+            beams[eid]['Total Shear Force'] = []
             beams[eid]['Bending Moment'] = []
             beams[eid]['Torque'] = []
             beams[eid]['Direct Stress'] = []
@@ -246,13 +258,25 @@ for a in analysisNumbers:
     smiscOp.inputs.data_sources.Connect(dataSources)
     smiscOp.inputs.time_scoping.Connect(timeScoping)
     smiscOp.inputs.mesh_scoping.Connect(beamElem_scoping)
+    
+    # Create scale operator
+    scale_op = dpf.operators.math.scale_fc()
+    if ANSYS_VER.ToUpper() == '2024 R2':
+        scale_op.inputs.ponderation.Connect(scale_factor)   # 2024 R2
+    else:
+        scale_op.inputs.weights.Connect(scale_factor)       # 2025 R2
+    
 
     for k, v in force_fields_idx.items():
         smiscOp.inputs.item_index.Connect(v)
-        force_fields[k] = smiscOp.outputs.fields_container.GetData()
+        force_fc = smiscOp.outputs.fields_container
+        scale_op.inputs.fields_container.Connect(force_fc)
+        force_fields[k] = scale_op.outputs.fields_container.GetData()
     for k, v in moment_fields_idx.items():
         smiscOp.inputs.item_index.Connect(v)
-        moment_fields[k] = smiscOp.outputs.fields_container.GetData()
+        moment_fc = smiscOp.outputs.fields_container
+        scale_op.inputs.fields_container.Connect(moment_fc)
+        moment_fields[k] = scale_op.outputs.fields_container.GetData()
         
     # Place the axial forces and direct stresses into the data dictionary
     for t in range(len(timeScoping.Ids)):
@@ -268,12 +292,20 @@ for a in analysisNumbers:
             SFy_I = force_fields['SFy_I'][t].Data[i]
             SFz_J = force_fields['SFz_J'][t].Data[i]
             SFy_J = force_fields['SFy_J'][t].Data[i]
-            SF_I = (SFz_I**2 + SFy_I**2)**(0.5)
-            SF_J = (SFz_J**2 + SFy_J**2)**(0.5)
-            if abs(SF_I) >= abs(SF_J):
-                beams[eid]['Shear Force'].append(SF_I * solForceQuan)
+            if abs(SFy_I) >= abs(SFy_J):
+                beams[eid]['SF_Y'].append(SFy_I * solForceQuan)
+                SFy = SFy_I
             else:
-                beams[eid]['Shear Force'].append(SF_J * solForceQuan)
+                beams[eid]['SF_Y'].append(SFy_J * solForceQuan)
+                SFy = SFy_J
+            if abs(SFz_I) >= abs(SFz_J):
+                beams[eid]['SF_Z'].append(SFz_I * solForceQuan)
+                SFz = SFz_I
+            else:
+                beams[eid]['SF_Z'].append(SFz_J * solForceQuan)
+                SFz = SFz_J
+            SF = (SFz**2 + SFy**2)**(0.5)
+            beams[eid]['Total Shear Force'].append(SF * solForceQuan)
             s = f/beams[eid]['area']
             beams[eid]['Direct Stress'].append(s)
             
@@ -323,7 +355,9 @@ for a in analysisNumbers:
                 'Time ' + timeUnit,
                 'Set',
                 'Axial Force ' + forceUnit,
-                'Shear Force ' + forceUnit,
+                'Shear Force Y' + forceUnit,
+                'Shear Force Z' + forceUnit,
+                'Total Shear Force ' + forceUnit,
                 'Torque ' + momentUnit,
                 'Bending Moment ' + momentUnit,
                 'Equivalent Stress ' + stressUnit,
@@ -344,7 +378,9 @@ for a in analysisNumbers:
                 'Time ' + timeUnit,
                 'Set',
                 'Axial Force ' + forceUnit,
-                'Shear Force ' + forceUnit,
+                'Shear Force Y' + forceUnit,
+                'Shear Force Z' + forceUnit,
+                'Total Shear Force ' + forceUnit,
                 'Torque ' + momentUnit,
                 'Bending Moment ' + momentUnit,
                 'Equivalent Stress ' + stressUnit,
@@ -383,14 +419,16 @@ for a in analysisNumbers:
             else:
                 data[cols[p + q + 1]].append(t+1)
             data[cols[p + q + 2]].append(beams[eid]['FX'][t] / forceQuan)
-            data[cols[p + q + 3]].append(beams[eid]['Shear Force'][t] / forceQuan)
-            data[cols[p + q + 4]].append(beams[eid]['Torque'][t] / momentQuan)
-            data[cols[p + q + 5]].append(beams[eid]['Bending Moment'][t] / momentQuan)
-            data[cols[p + q + 6]].append(beams[eid]['Equivalent Stress'][t] / stressQuan)
-            data[cols[p + q + 7]].append(beams[eid]['Direct Stress'][t] / stressQuan)
-            data[cols[p + q + 8]].append(beams[eid]['Bending Stress'][t] / stressQuan)
-            data[cols[p + q + 9]].append(beams[eid]['Combined Stress'][t] / stressQuan)
-            data[cols[p + q + 10]].append(beams[eid]['Torsional Stress'][t] / stressQuan)
+            data[cols[p + q + 3]].append(beams[eid]['SF_Y'][t] / forceQuan)
+            data[cols[p + q + 4]].append(beams[eid]['SF_Z'][t] / forceQuan)
+            data[cols[p + q + 5]].append(beams[eid]['Total Shear Force'][t] / forceQuan)
+            data[cols[p + q + 6]].append(beams[eid]['Torque'][t] / momentQuan)
+            data[cols[p + q + 7]].append(beams[eid]['Bending Moment'][t] / momentQuan)
+            data[cols[p + q + 8]].append(beams[eid]['Equivalent Stress'][t] / stressQuan)
+            data[cols[p + q + 9]].append(beams[eid]['Direct Stress'][t] / stressQuan)
+            data[cols[p + q + 10]].append(beams[eid]['Bending Stress'][t] / stressQuan)
+            data[cols[p + q + 11]].append(beams[eid]['Combined Stress'][t] / stressQuan)
+            data[cols[p + q + 12]].append(beams[eid]['Torsional Stress'][t] / stressQuan)
         
 
     x = datetime.datetime.now()
