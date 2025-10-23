@@ -3,11 +3,10 @@ Calculate Stress Resultants for all beam connections using results from results 
 =====================================================================================
 
 This has been tested on 2024 R2 and 2025 R1.
-
 """
 
 ################################## USER INPUTS ##################################
-analysisNumbers = [2]           # LIST OF ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
+analysisNumbers = [0]           # LIST OF ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
 lengthUnitStr = 'in'            # DESIRED LENGTH OUTPUT UNIT (usually 'in' or 'mm')
 forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT (usually 'lbf' or 'N')
 CALCULATE_STIFFNESS = 'y'       # USE ELASTIC CONSTANTS TO CALCULATE STIFFNESS (must be one of 'y' or 'n')
@@ -146,11 +145,9 @@ for a in analysisNumbers:
     timeUnit = '[' + timeUnitStr + ']'
     number_sets = model.TimeFreqSupport.NumberSets      # Number of time steps
     timeIds = range(1, number_sets + 1)                 # List of time steps
-    #if str(analysis_type).ToLower() == 'spectrum':
-    #    timeIds = [2]
-    #elif str(analysis_type).ToLower() == 'responsespectrum':
-    #    timeIds = [1]
-    if str(analysis_type).ToLower() == 'responsespectrum':
+    if str(analysis_type).ToLower() == 'spectrum':
+        timeIds = [2]
+    elif str(analysis_type).ToLower() == 'responsespectrum':
         timeIds = [1]
     timeSets = model.TimeFreqSupport.TimeFreqs.ScopingIds  # List of time steps
     
