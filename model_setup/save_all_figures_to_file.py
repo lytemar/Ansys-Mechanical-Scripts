@@ -1,18 +1,6 @@
 """
 Export all result figures to PNG image files.
-=====================================================================================
-
-This has been tested on 2024 R2 and 2025 R1.
-** It doesn't work for prestressed Response Spectrum Analysis as this time**
-
-
-
-
-
-"""
-"""
-Export all result figures to PNG image files.
-=====================================================================================
+============================================
 
 This has been tested on 2024 R2 and 2025 R1.
 """
