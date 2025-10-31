@@ -57,7 +57,7 @@ def getNamedSelectionsGroupByName(name):
 
 def createDirVelocity(ns, dir):
     """
-    Create a directional velocity PSD post-processing item scoped to a named selection given by ID.
+    Create a directional velocity post-processing item scoped to a named selection given by ID.
     
     Parameters
     ----------
@@ -75,6 +75,8 @@ def createDirVelocity(ns, dir):
     if str(analysis_type).ToLower() == "spectrum":
         dir_vel = analysis.Solution.AddDirectionalVelocityPSD()
         dir_vel.ScaleFactor = SCALE_FACTOR
+    elif str(analysis_type).ToLower() == "responsespectrum":
+        dir_vel = analysis.Solution.AddDirectionalVelocityRS()
     else:
         dir_vel = analysis.Solution.AddDirectionalVelocity()
     if dir.ToLower() == 'x':
