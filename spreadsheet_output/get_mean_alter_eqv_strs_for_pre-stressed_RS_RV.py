@@ -2,6 +2,13 @@
 Get node and value of max eqv stress from a static structural.  Then get corresponding eqv stress in linear dynamics child analyses.
 ====================================================================================================================================
 
+This script extracts the maximum von Mises equivalent stress for each group of scoped bodies within named selections
+for specified analysis times for a static structural analysis that is a prestress analysis for linear dynamics analyses.
+Then, using the node of max stress from the static structural, the corresponding equivalent stress is obtained for the
+downstream linear dynamics analyses.  The named selections that are of interest are placed in a Tree Grouping folder
+called `Results Scoping`.
+
+
 This has been tested on 2024 R2 and 2025 R1.
 """
 
