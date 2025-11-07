@@ -18,7 +18,6 @@ These scripts are run as Scripting objects from the Automation tab to export des
   - Extract LS-DYNA Binout Tracker forces from Solution Information and compute the components w.r.t. A Local CSYS.
     Write results to spreadsheet.
   
-
 - ### extract_max_eqv_stress_for_all_bodies_in_NS_and_time.py
   - This script extracts the maximum von Mises equivalent stress for each group of scoped bodies within named selections
     for all analysis times, or the last time only.  The named selections that are of interest are placed in a Tree
@@ -41,7 +40,7 @@ These scripts are run as Scripting objects from the Automation tab to export des
     to spreadsheet.
 
 - ### get_mean_alter_eqv_strs_for_pre-stressed_RS_RV.py
-  For prestressed random vibration (RV)/response spectrum (RS) analyses, find the node with maximum equivalent stress in the
-  static structural analysis, call that the mean stress, and find the associated equivalent stress in the downstream
-  RS/RV analyses, call that an alternating stress, and export summary to spreadsheet.
+  - For prestressed random vibration (RV)/response spectrum (RS) analyses, find the node with maximum equivalent stress
+    in the static structural analysis, call that the mean stress, and find the associated equivalent stress in the
+	downstream RS/RV analyses, call that an alternating stress, and export summary to spreadsheet.
   
