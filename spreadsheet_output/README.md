@@ -23,6 +23,10 @@ These scripts are run as Scripting objects from the Automation tab to export des
     for all analysis times, or the last time only.  The named selections that are of interest are placed in a Tree
 	Grouping folder called `Results Scoping`.
   
+- ### get_max_dir_acceleration_for_results_in_tree_folder.py
+  - For results objects that are in a tree folder, read the results table and write the maximum directional acceleration
+    to spreadsheet for a list of directions.
+
 - ### get_max_dir_deformation_for_results_in_tree_folder.py
   - For results objects that are in a tree folder, read the results table and write the maximum directional deformation
     to spreadsheet for a list of directions.
