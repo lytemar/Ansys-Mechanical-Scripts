@@ -20,7 +20,20 @@ These scripts are run as Scripting objects from the Automation tab to export des
 	Grouping folder called `Results Scoping`.
   
 - ### get_max_dir_deformation_for_results_in_tree_folder.py
-  - For results objects that are in a tree folder, read the results table and write the maximum to spreadsheet.
+  - For results objects that are in a tree folder, read the results table and write the maximum directional deformation
+    to spreadsheet for a list of directions.
+  
+- ### get_max_dir_velocity_for_results_in_tree_folder.py
+  - For results objects that are in a tree folder, read the results table and write the maximum directional velocity
+    to spreadsheet for a list of directions.
+
+- ### get_max_eqv_stress_for_results_in_tree_folder.py
+  - For results objects that are in a tree folder, read the results table and write the maximum equivalent stress
+    to spreadsheet.
+  
+- ### get_max_total_deformation_for_results_in_tree_folder.py
+  - For results objects that are in a tree folder, read the results table and write the maximum total deformation
+    to spreadsheet.
 
 - ### get_mean_alter_eqv_strs_for_pre-stressed_RS_RV.py
   For prestressed random vibration (RV)/response spectrum (RS) analyses, find the node with maximum equivalent stress in the
