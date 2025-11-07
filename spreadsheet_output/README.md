@@ -14,6 +14,11 @@ These scripts are run as Scripting objects from the Automation tab to export des
     structural, transient structural, random vibration and response spectrum analyses.
   - WORKS FOR **2024 R2** AND LATER.
 
+- ### extract_ls-dyna_binout_tracker_forces.py
+  - Extract LS-DYNA Binout Tracker forces from Solution Information and compute the components w.r.t. A Local CSYS.
+    Write results to spreadsheet.
+  
+
 - ### extract_max_eqv_stress_for_all_bodies_in_NS_and_time.py
   - This script extracts the maximum von Mises equivalent stress for each group of scoped bodies within named selections
     for all analysis times, or the last time only.  The named selections that are of interest are placed in a Tree
