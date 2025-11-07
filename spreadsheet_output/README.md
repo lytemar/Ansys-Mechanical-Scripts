@@ -1,4 +1,4 @@
-# Python Scripts to Automate Model Setup
+# Python Scripts to Export Results in Spreadsheet Format
 
 These scripts are run as Scripting objects from the Automation tab to export desired results in spreadsheet format
 
@@ -19,6 +19,9 @@ These scripts are run as Scripting objects from the Automation tab to export des
     for all analysis times, or the last time only.  The named selections that are of interest are placed in a Tree
 	Grouping folder called `Results Scoping`.
   
+- ### get_max_dir_deformation_for_results_in_tree_folder.py
+  - For results objects that are in a tree folder, read the results table and write the maximum to spreadsheet.
+
 - ### get_mean_alter_eqv_strs_for_pre-stressed_RS_RV.py
   For prestressed random vibration (RV)/response spectrum (RS) analyses, find the node with maximum equivalent stress in the
   static structural analysis, call that the mean stress, and find the associated equivalent stress in the downstream
