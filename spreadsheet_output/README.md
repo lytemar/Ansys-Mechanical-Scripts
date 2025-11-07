@@ -22,6 +22,9 @@ These scripts are run as Scripting objects from the Automation tab to export des
   - This script extracts the maximum von Mises equivalent stress for each group of scoped bodies within named selections
     for all analysis times, or the last time only.  The named selections that are of interest are placed in a Tree
 	Grouping folder called `Results Scoping`.
+	
+- ### get_force_reactions_for_joints.py	
+  - Get all force and moment reactions for joints using results from results file.
   
 - ### get_max_dir_acceleration_for_results_in_tree_folder.py
   - For results objects that are in a tree folder, read the results table and write the maximum directional acceleration
