@@ -5,8 +5,6 @@ Extract Maximum Equivalent Stress for all bodies in named selections at all anal
 This script extracts the maximum von Mises equivalent stress for each group of scoped bodies
 within named selections for all analysis times.  The named selections that are of interest are
 placed in a Tree Grouping folder called `Results Scoping`.
-
-
 """
 
 ################################## USER INPUTS ##################################
@@ -200,26 +198,52 @@ for a in analysisNumbers:
         res[nid]['Times'] = []
         res[nid]['Sets'] = []
         res[nid]['Max Eqv. Stress'] = []
-        #Get the mesh element Ids
-        solMesh = meshData.MeshRegionById(n.Location.Ids[0])
-        res[nid]['Elements'] = solMesh.ElementIds
+        
+        #Get the mesh element and node Ids
+        elemIds = []
+        nodeIds = []
+        for nlocId in n.Location.Ids:
+            solMesh = meshData.MeshRegionById(nlocId)
+            elemIds += solMesh.ElementIds
+            nodeIds += solMesh.NodeIds
+        res[nid]['Elements'] = elemIds
+        res[nid]['Nodes'] = nodeIds
+        
         # Scope the von Mises stress results to the element Ids
         scoping = dpf.Scoping()
-        scoping.Ids = solMesh.ElementIds
+        scoping.Ids = elemIds
         scoping.Location = dpf.locations.elemental
+        
         # Scope von Mises stress results to active named selection
         seqvOp.inputs.mesh_scoping.Connect(scoping)
         vmStressFC = seqvOp.outputs.fields_container
         vmStress = vmStressFC.GetData()
+        
         # Convert the von Mises stress to desired stress units
         unitConvOp.inputs.fields_container.Connect(vmStress)
+        
         # Scale the von Mises stress
         vmStressFC = unitConvOp.outputs.fields_container
         scaleOp.inputs.fields_container.Connect(vmStressFC)
         vmStress = scaleOp.outputs.fields_container.GetData()
+        
+        # Remove fields with 0 entities by creating a new fields container by adding fields
+        # if they are greater than zero.
+        # Create empry fields_container and set label space equal to that of the stress FC
+        fc = dpf.FieldsContainer()
+        fc.Labels = list(vmStress.GetLabelSpace(0).Keys)
+        fcLblSpcLen = len(fc.Labels)
+        # Get fields with more than zero entities
+        j = 1
+        for i in range(vmStress.FieldCount):
+            if vmStress[i].ElementaryDataCount > 0:
+                fc.Add(vmStress[i],vmStress.GetLabelSpace(i))
+                j = j + 1
+        
         # Get the maximum von Mises stress for all times
-        minMaxOp.inputs.fields_container.Connect(vmStress)
+        minMaxOp.inputs.fields_container.Connect(fc)
         maxVmStress = minMaxOp.outputs.field_max.GetData()
+        
         for t in range(len(timeScoping.Ids)):
             res[nid]['Times'].append(all_times[t])
             res[nid]['Sets'].append(timeScoping.Ids[t])
