@@ -17,9 +17,18 @@ These scripts are inserted as Python Code results objects with *Target Callback 
   
 - ### get_max_dir_deformation_for_results_in_tree_folder.py
   Retrieve Maximum Value Over Time for Directional Deformation Results in Tree Folder.
+  
+- ### get_max_dir_velocity_for_results_in_tree_folder.py
+  Retrieve Maximum Value Over Time for Directional Velocity Results in Tree Folder.
 
 - ### get_max_eqv_stress_for_all_bodies_in_NS_and_time.py
   This script extracts the maximum von Mises equivalent stress for each group of scoped bodies within named selections
   for all analysis times.  The named selections that are of interest are placed in a Tree Grouping folder called
   `Results Scoping`.
+
+- ### get_max_eqv_stress_for_results_in_tree_folder.py
+  Retrieve Maximum Value Over Time for Equivalent Stress Results in Tree Folder.
+
+- ### get_max_total_deformation_for_results_in_tree_folder.py
+  Retrieve Maximum Value Over Time for Total Deformation Results in Tree Folder.
   
