@@ -13,7 +13,10 @@ These scripts are inserted as Python Code results objects with *Target Callback 
   Structural, Random Vibration and Response Spectrum Analyses.
   
 - ### get_max_dir_acceleration_for_results_in_tree_folder.py
-  Retrieve Maximum Value Over Time for Directional Accleration Results in Tree Folder.
+  Retrieve Maximum Value Over Time for Directional Acceleration Results in Tree Folder.
+  
+- ### get_max_dir_deformation_for_results_in_tree_folder.py
+  Retrieve Maximum Value Over Time for Directional Deformation Results in Tree Folder.
 
 - ### get_max_eqv_stress_for_all_bodies_in_NS_and_time.py
   This script extracts the maximum von Mises equivalent stress for each group of scoped bodies within named selections
