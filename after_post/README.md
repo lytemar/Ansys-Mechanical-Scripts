@@ -9,4 +9,9 @@ These scripts are inserted as Python Code results objects with *Target Callback 
 
 - ### get_force_reactions_for_joints.py
   Retrieve the force and moment resultants for all joints using results for results file, tested in 2025 R1 on Static Structural, Random Vibration and Response Spectrum Analyses.
+
+- ### get_max_eqv_stress_for_all_bodies_in_NS_and_time.py
+  This script extracts the maximum von Mises equivalent stress for each group of scoped bodies within named selections
+  for all analysis times.  The named selections that are of interest are placed in a Tree Grouping folder called
+  `Results Scoping`.
   
