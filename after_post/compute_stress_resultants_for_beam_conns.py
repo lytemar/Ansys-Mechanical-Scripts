@@ -26,7 +26,6 @@ def after_post(this, solution):# Do not edit this line
     forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT (usually 'lbf' or 'N')
     CALCULATE_STIFFNESS = 'y'       # USE ELASTIC CONSTANTS TO CALCULATE STIFFNESS (must be one of 'y' or 'n')
     RANDOM_VIBRATION_SIGMA = 3      # SCALE FACTOR (SIGMA) FOR RESULTS OUTPUT
-    ANSYS_VER = '2024 R2'           # Ansys version ('2024 R2', '2025 R1', '2025 R2')
     #################################################################################
 
     import wbjn
@@ -41,6 +40,7 @@ def after_post(this, solution):# Do not edit this line
     analysis = solution.Parent
     solver_data = solution.SolverData
     analysis_type = analysis.AnalysisType
+    ANSYS_VER = str(ExtAPI.DataModel.Project.ProductVersion)
     
     
     if lengthUnitStr.ToLower() == 'in' and forceUnitStr.ToLower() == 'lbf':
