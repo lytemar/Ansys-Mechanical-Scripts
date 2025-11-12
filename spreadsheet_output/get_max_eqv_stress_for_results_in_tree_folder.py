@@ -13,6 +13,7 @@ import Ans.DataProcessing as dpf
 cmd = 'returnValue(GetUserFilesDirectory())'
 user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
+ANSYS_VER = str(ExtAPI.DataModel.Project.ProductVersion)
 
 ################### Parameters ########################
 analysisNumbers = [0]       # List of analysis systems to apply this script
@@ -71,7 +72,7 @@ def writeCSV(filename, data, cols):
     data : dict
         Data dictionary
     cols : list of str
-        Column header names
+        Column header names = 
     
     Returns
     -------

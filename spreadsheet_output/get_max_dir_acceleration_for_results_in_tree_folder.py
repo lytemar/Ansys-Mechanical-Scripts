@@ -24,6 +24,7 @@ import Ans.DataProcessing as dpf
 cmd = 'returnValue(GetUserFilesDirectory())'
 user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
+ANSYS_VER = str(ExtAPI.DataModel.Project.ProductVersion)
 
 def findTreeGroupingFolders(item):
     """

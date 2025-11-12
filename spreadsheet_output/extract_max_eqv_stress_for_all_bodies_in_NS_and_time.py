@@ -13,7 +13,6 @@ staticStrLastTimeOnly = 'Y'     # 'Y' = only output last time step for static st
 lengthUnitStr = 'in'            # DESIRED LENGTH OUTPUT UNIT (usually 'in' or 'mm', case sensitive)
 forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT (usually 'lbf' or 'N', case sensitive)
 RANDOM_VIBRATION_SIGMA = 3      # SCALE FACTOR (SIGMA) FOR RESULTS OUTPUT
-ANSYS_VER = '2024 R2'           # Ansys version ('2024 R2', '2025 R1', '2025 R2')
 NAMED_SEL_FOLDER = 'Results Scoping'        # Named selection folder name containing NS used for results scoping
 # Set the scale factor for Random Vibration Analyses
 # The last part of the Enumeration can be (Sigma1, Sigma2, Sigma3, UserDefined)
@@ -29,6 +28,7 @@ import materials
 cmd = 'returnValue(GetUserFilesDirectory())'
 user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
 mech_dpf.setExtAPI(ExtAPI)
+ANSYS_VER = str(ExtAPI.DataModel.Project.ProductVersion)
 
 
 if lengthUnitStr.ToLower() == 'in' and forceUnitStr.ToLower() == 'lbf':
