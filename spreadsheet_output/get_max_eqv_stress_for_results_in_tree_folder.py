@@ -2,7 +2,7 @@
 Retrieve Maximum Equivalent Stress Value Over Time for Equivalent Stress Results in Tree Folder.
 ====================================================================================================
 
-This script reads the Maximum Value Over Time for Eqv Stress results and wrties the data to a CSV file.
+This script reads the Maximum Value Over Time for Eqv Stress results and writes the data to a CSV file.
 
 """
 import wbjn
