@@ -4,6 +4,7 @@ Retrieve Nodal Contact Pressure With Nodal Coordinates Over Time for a Contact.
 
 This script outputs the node ID, nodal coordinates and contact pressure for a contact provided by name and writes the
 data to a CSV file.
+
 """
 ################### Parameters ########################
 analysis_numbers = [0]       # List of analysis systems to apply this script
@@ -84,7 +85,7 @@ if use_loc_csys.ToLower() == 'y':
 for a in analysis_numbers:
     analysis = Model.Analyses[a]
     solver_data = analysis.Solution.SolverData
-    data_source = dpf.dataSources(analysis.ResultFileName)
+    data_source = dpf.DataSources(analysis.ResultFileName)
     model = dpf.Model(data_source)
     whole_mesh = model.Mesh
     
