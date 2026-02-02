@@ -5,14 +5,15 @@ Retrieve Nodal Contact Pressure With Nodal Coordinates Over Time for a Contact.
 This script outputs the node ID, nodal coordinates and contact pressure for a contact provided by name and writes the
 data to a CSV file.
 
+
 """
 ################### Parameters ########################
 analysis_numbers = [0]       # List of analysis systems to apply this script
-static_struct_last_time_only = 'N'     # 'Y' = only output last time step for static structural, 'N' = output all time steps
+static_struct_last_time_only = 'y'     # 'Y' = only output last time step for static structural, 'N' = output all time steps
 contact_name = "Frictional - flange_1_mate To flange_2_mate"  # Contact name for pressure results
 use_loc_csys = 'y'                # get nodal coordinates w.r.t. ('y' = loca coordinate system, 'n' = global coordinate system)
 loc_csys_name = "Loc Csys"        # Name of local coordinate system for nodal coordinates
-length_unit_str = 'mm'            # DESIRED LENGTH OUTPUT UNIT (usually 'in' or 'mm', case sensitive)
+length_unit_str = 'm'            # DESIRED LENGTH OUTPUT UNIT (usually 'in' or 'mm', case sensitive)
 force_unit_str = 'N'            # DESIRED FOURCE OUTPUT UNIT (usually 'lbf' or 'N', case sensitive)
 ################### End Parameters ########################
 
@@ -178,14 +179,14 @@ for a in analysis_numbers:
             res[k]['Node_Z'].append(vec[2])
                 
         # Loop through all requested times
-        for i, t in enumerate(contact_pressures.TimeFreqSupport.TimeFreqs.Data):
-            res[k]['Contact_Pressure'][t] = {}
-            res[k]['Contact_Pressure'][t]['Pres'] = []
+        for i,t in enumerate(time_ids):
+            res[k]['Contact_Pressure'][all_times[t-1]] = {}
+            res[k]['Contact_Pressure'][all_times[t-1]]['Pres'] = []
             for n in res[k]['Node_ID']:
-                res[k]['Contact_Pressure'][t]['Pres'].append(contact_pressures[i].GetEntityDataById(n)[0])
+                res[k]['Contact_Pressure'][all_times[t-1]]['Pres'].append(contact_pressures[i].GetEntityDataById(n)[0])
                 
         # Create data dictionary to written to output csv file
-        for t in contact_pressures.TimeFreqSupport.TimeFreqs.Data:
+        for i,t in enumerate(time_ids):
             data = {}
             # Data column names
             cols = ['Node ID',
@@ -198,7 +199,7 @@ for a in analysis_numbers:
             data[cols[1]] = res[k]['Node_X']
             data[cols[2]] = res[k]['Node_Y']
             data[cols[3]] = res[k]['Node_Z']
-            data[cols[4]] = res[k]['Contact_Pressure'][t]['Pres']
+            data[cols[4]] = res[k]['Contact_Pressure'][all_times[t-1]]['Pres']
     
             x = datetime.datetime.now()
         
