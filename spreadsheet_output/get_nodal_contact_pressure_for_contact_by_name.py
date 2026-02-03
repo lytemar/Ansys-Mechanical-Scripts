@@ -6,6 +6,7 @@ This script outputs the node ID, nodal coordinates and contact pressure for a co
 data to a CSV file.
 
 
+
 """
 ################### Parameters ########################
 analysis_numbers = [0]       # List of analysis systems to apply this script
@@ -97,6 +98,7 @@ for a in analysis_numbers:
     time_ids = range(1, number_sets + 1)                 # List of time steps
     if static_struct_last_time_only.ToLower() == 'y':
         time_ids = [time_ids[len(time_ids)-1]]            # Last time step
+    active_times = [all_times[t-1] for t in time_ids]       # Solution times corresponding to available time_ids
     
     # Time scoping
     time_scoping = dpf.Scoping()
@@ -179,14 +181,14 @@ for a in analysis_numbers:
             res[k]['Node_Z'].append(vec[2])
                 
         # Loop through all requested times
-        for i,t in enumerate(time_ids):
-            res[k]['Contact_Pressure'][all_times[t-1]] = {}
-            res[k]['Contact_Pressure'][all_times[t-1]]['Pres'] = []
+        for i,t in enumerate(active_times):
+            res[k]['Contact_Pressure'][t] = {}
+            res[k]['Contact_Pressure'][t]['Pres'] = []
             for n in res[k]['Node_ID']:
-                res[k]['Contact_Pressure'][all_times[t-1]]['Pres'].append(contact_pressures[i].GetEntityDataById(n)[0])
+                res[k]['Contact_Pressure'][t]['Pres'].append(contact_pressures[i].GetEntityDataById(n)[0])
                 
         # Create data dictionary to written to output csv file
-        for i,t in enumerate(time_ids):
+        for t in active_times:
             data = {}
             # Data column names
             cols = ['Node ID',
@@ -199,7 +201,7 @@ for a in analysis_numbers:
             data[cols[1]] = res[k]['Node_X']
             data[cols[2]] = res[k]['Node_Y']
             data[cols[3]] = res[k]['Node_Z']
-            data[cols[4]] = res[k]['Contact_Pressure'][all_times[t-1]]['Pres']
+            data[cols[4]] = res[k]['Contact_Pressure'][t]['Pres']
     
             x = datetime.datetime.now()
         
