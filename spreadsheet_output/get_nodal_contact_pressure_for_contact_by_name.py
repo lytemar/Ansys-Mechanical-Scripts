@@ -4,9 +4,6 @@ Retrieve Nodal Contact Pressure With Nodal Coordinates Over Time for a Contact.
 
 This script outputs the node ID, nodal coordinates and contact pressure for a contact provided by name and writes the
 data to a CSV file.
-
-
-
 """
 ################### Parameters ########################
 analysis_numbers = [0]       # List of analysis systems to apply this script
@@ -34,6 +31,8 @@ elif length_unit_str.ToLower() == 'mm' and force_unit_str.ToUpper() == 'N':
     stress_unit_str = 'MPa'
 else:
     stress_unit_str = force_unit_str + '*' + length_unit_str + '^-2'          # Desired stress output unit
+    
+
 
 #  Place units in Ansys Mechanical format for output conversion
 length_unit = '[' + length_unit_str + ']'
@@ -90,6 +89,7 @@ for a in analysis_numbers:
     data_source = dpf.DataSources(analysis.ResultFileName)
     model = dpf.Model(data_source)
     whole_mesh = model.Mesh
+    streams = mech_dpf.GetStreams(0)
     
     all_times = model.TimeFreqSupport.TimeFreqs.Data
     time_unit_str = str(model.TimeFreqSupport.TimeFreqs.Unit)               # Time stepping unit
@@ -115,10 +115,25 @@ for a in analysis_numbers:
     for c in cont_objs:
         cont_name = c.Name
         cont_data = solver_data.GetObjectData(c)
-        mat_cont = cont_data.SourceId.ToString()
-        mat_targ = cont_data.TargetId.ToString()
-        cont_obj_elements = solver_data.ElementIdsByMaterialId(mat_cont)
-        cont_obj_nodes = solver_data.NodeIdsByMaterialId(mat_cont)
+        mat_cont = cont_data.SourceId
+        mat_targ = cont_data.TargetId
+        
+        scop_on_prop_op = dpf.operators.scoping.on_property()
+        scop_on_prop_op.inputs.property_name.Connect("material")
+        scop_on_prop_op.inputs.property_id.Connect(mat_cont)
+        scop_on_prop_op.inputs.requested_location.Connect("Elemental")
+        scop_on_prop_op.inputs.streams_container.Connect(streams)
+        #scop_on_prop_op.inputs.data_sources.Connect(data_source)
+        cont_obj_elements = scop_on_prop_op.outputs.mesh_scoping.GetData().Ids
+        # Get the nodes for each contact element
+        nodes = []
+        [nodes.append(model.Mesh.ElementById(x).NodeIds) for x in cont_obj_elements]
+        # Flatten the list of lists and remove duplicates
+        cont_obj_nodes = sorted(set([item for sublist in nodes for item in sublist]))
+        
+        # This is known to be buggy
+        #cont_obj_elements = solver_data.ElementIdsByMaterialId(mat_cont.ToString())
+        #cont_obj_nodes = sorted(solver_data.NodeIdsByMaterialId(mat_cont.ToString()))
         
         mesh_scoping = dpf.Scoping()
         mesh_scoping.Location = dpf.locations.nodal
@@ -210,4 +225,6 @@ for a in analysis_numbers:
             
             print("[INFO] Process completed for " + analysis.Name)
             print("Open File: " + chr(34) + user_dir + chr(92) + file_name_body + ".csv" + chr(34) + '\n')
+    
+    streams.ReleaseHandles()
 
