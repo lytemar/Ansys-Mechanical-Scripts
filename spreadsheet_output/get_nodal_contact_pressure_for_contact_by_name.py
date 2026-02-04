@@ -4,6 +4,7 @@ Retrieve Nodal Contact Pressure With Nodal Coordinates Over Time for a Contact.
 
 This script outputs the node ID, nodal coordinates and contact pressure for a contact provided by name and writes the
 data to a CSV file.
+
 """
 ################### Parameters ########################
 analysis_numbers = [0]       # List of analysis systems to apply this script
@@ -29,10 +30,11 @@ if length_unit_str.ToLower() == 'in' and force_unit_str.ToLower() == 'lbf':
     stress_unit_str = 'psi'
 elif length_unit_str.ToLower() == 'mm' and force_unit_str.ToUpper() == 'N':
     stress_unit_str = 'MPa'
+elif length_unit_str.ToLower() == 'm' and force_unit_str.ToUpper() == 'N':
+    stress_unit_str = 'Pa'
 else:
     stress_unit_str = force_unit_str + '*' + length_unit_str + '^-2'          # Desired stress output unit
     
-
 
 #  Place units in Ansys Mechanical format for output conversion
 length_unit = '[' + length_unit_str + ']'
@@ -81,7 +83,12 @@ if use_loc_csys.ToLower() == 'y':
     identity = Matrix4D()
     transformation = identity.CreateSystem(res_csys_xaxis, res_csys_yaxis, res_csys_zaxis)
     transformation.Transpose()
-
+    
+    # Translation part of transformation
+    res_csys_origin_transfd = transformation.Transform(res_csys_origin)
+    for i in range(0, 3):
+        transformation[12+i] = -res_csys_origin_transfd[i]
+    
 
 for a in analysis_numbers:
     analysis = Model.Analyses[a]
@@ -117,6 +124,9 @@ for a in analysis_numbers:
         cont_data = solver_data.GetObjectData(c)
         mat_cont = cont_data.SourceId
         mat_targ = cont_data.TargetId
+        # This is known to be buggy
+        #cont_obj_elements = solver_data.ElementIdsByMaterialId(mat_cont.ToString())
+        #cont_obj_nodes = sorted(solver_data.NodeIdsByMaterialId(mat_cont.ToString()))
         
         scop_on_prop_op = dpf.operators.scoping.on_property()
         scop_on_prop_op.inputs.property_name.Connect("material")
@@ -130,11 +140,7 @@ for a in analysis_numbers:
         [nodes.append(model.Mesh.ElementById(x).NodeIds) for x in cont_obj_elements]
         # Flatten the list of lists and remove duplicates
         cont_obj_nodes = sorted(set([item for sublist in nodes for item in sublist]))
-        
-        # This is known to be buggy
-        #cont_obj_elements = solver_data.ElementIdsByMaterialId(mat_cont.ToString())
-        #cont_obj_nodes = sorted(solver_data.NodeIdsByMaterialId(mat_cont.ToString()))
-        
+                
         mesh_scoping = dpf.Scoping()
         mesh_scoping.Location = dpf.locations.nodal
         mesh_scoping.Ids = cont_obj_nodes
@@ -190,7 +196,7 @@ for a in analysis_numbers:
             x, y, z = node_coords.GetEntityDataById(n)
             vec = Vector3D(x, y, z)
             if use_loc_csys.ToLower() == 'y':
-                vec = transformation.Transform(vec) - res_csys_origin
+                vec = transformation.Transform(vec)
             res[k]['Node_X'].append(vec[0])
             res[k]['Node_Y'].append(vec[1])
             res[k]['Node_Z'].append(vec[2])
@@ -206,11 +212,11 @@ for a in analysis_numbers:
         for t in active_times:
             data = {}
             # Data column names
-            cols = ['Node ID',
-                    'Node X [' + length_unit + ']',
-                    'Node Y [' + length_unit + ']',
-                    'Node Z [' + length_unit + ']',
-                    'Contact Pressure [' + stress_unit + ']']
+            cols = ['Node Number',
+                    'X Location (' + length_unit_str + ')',
+                    'Y Location (' + length_unit_str + ')',
+                    'Z Location (' + length_unit_str + ')',
+                    'Pressure (' + stress_unit_str + ')']
             
             data[cols[0]] = res[k]['Node_ID']
             data[cols[1]] = res[k]['Node_X']
