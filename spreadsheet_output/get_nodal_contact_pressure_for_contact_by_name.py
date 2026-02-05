@@ -191,7 +191,8 @@ for a in analysis_numbers:
         res[k]['Contact_Pressure'] = {}
         
         # Create Vector3D for nodal coordinates, transform them, and place transformed vectors in results dictionary 
-        for n in cont_node_ids:
+        # for n in cont_node_ids:
+        for n in mesh_scoping.Ids:
             res[k]['Node_ID'].append(n)
             x, y, z = node_coords.GetEntityDataById(n)
             vec = Vector3D(x, y, z)
