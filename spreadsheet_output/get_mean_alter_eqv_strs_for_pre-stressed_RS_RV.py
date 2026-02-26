@@ -15,10 +15,10 @@ This has been tested on 2024 R2 and 2025 R1.
 """
 
 ################################## USER INPUTS ##################################
-StaticStrAnalysisNumber = 0     # Analysis numbers for the static structural analysis (susally = 0)
-childAnalysisNumbers = [2, 3]          # LIST OF CHILD ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
-lengthUnitStr = 'in'            # DESIRED LENGTH OUTPUT UNIT (usually 'in' or 'mm', case sensitive)
-forceUnitStr = 'lbf'            # DESIRED FOURCE OUTPUT UNIT (usually 'lbf' or 'N', case sensitive)
+static_str_analysis_num = 0     # Analysis numbers for the static structural analysis (susally = 0)
+child_analysis_nums = [2, 3]          # LIST OF CHILD ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
+len_unit_str = 'in'            # DESIRED LENGTH OUTPUT UNIT (usually 'in' or 'mm', case sensitive)
+force_unit_str = 'lbf'            # DESIRED FOURCE OUTPUT UNIT (usually 'lbf' or 'N', case sensitive)
 RANDOM_VIBRATION_SIGMA = 3      # SCALE FACTOR (SIGMA) FOR RESULTS OUTPUT
 NAMED_SEL_FOLDER = 'Results Scoping'        # Named selection folder name containing NS used for results scoping
 # Set the scale factor for Random Vibration Analyses
@@ -38,27 +38,27 @@ mech_dpf.setExtAPI(ExtAPI)
 ANSYS_VER = str(ExtAPI.DataModel.Project.ProductVersion)
 
 
-if lengthUnitStr.ToLower() == 'in' and forceUnitStr.ToLower() == 'lbf':
-    stressUnitStr = 'psi'
-elif lengthUnitStr.ToLower() == 'mm' and forceUnitStr.ToUpper() == 'N':
-    stressUnitStr = 'MPa'
+if len_unit_str.ToLower() == 'in' and force_unit_str.ToLower() == 'lbf':
+    stress_unit_str = 'psi'
+elif len_unit_str.ToLower() == 'mm' and force_unit_str.ToUpper() == 'N':
+    stress_unit_str = 'MPa'
 else:
-    stressUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-2'          # Desired stress output unit
-momentUnitStr = forceUnitStr + '*' + lengthUnitStr                      # Desired moment/torque output unit
-stiffnessUnitStr = forceUnitStr + '*' + lengthUnitStr + '^-1'           # Desired stiffness output unit
+    stress_unit_str = force_unit_str + '*' + len_unit_str + '^-2'          # Desired stress output unit
+moment_unit_str = force_unit_str + '*' + len_unit_str                      # Desired moment/torque output unit
+stiffness_unit_str = force_unit_str + '*' + len_unit_str + '^-1'           # Desired stiffness output unit
 
 
 #  Place units in Ansys Mechanical format for output conversion
-lengthUnit = '[' + lengthUnitStr + ']'
-forceUnit = '[' + forceUnitStr + ']'            # Desired force output unit
-stressUnit = '[' + stressUnitStr + ']'          # Desired stress output unit
+len_unit = '[' + len_unit_str + ']'
+force_unit = '[' + force_unit_str + ']'            # Desired force output unit
+stress_unit = '[' + stress_unit_str + ']'          # Desired stress output unit
 
-lengthQuan = Quantity(1, lengthUnitStr)         # Desired length output unit quantity
-forceQuan = Quantity(1, forceUnitStr)           # Desired force output unit quantity
-momentQuan = Quantity(1, momentUnitStr)         # Desired moment output unit quantity
-stressQuan = Quantity(1, stressUnitStr)         # Desired stress output unit quantity
+len_quan = Quantity(1, len_unit_str)         # Desired length output unit quantity
+force_quan = Quantity(1, force_unit_str)           # Desired force output unit quantity
+moment_quan = Quantity(1, moment_unit_str)         # Desired moment output unit quantity
+stress_quan = Quantity(1, stress_unit_str)         # Desired stress output unit quantity
 
-def writeCSV(filename, data, cols):
+def write_csv(filename, data, cols):
     """
     Function to write python data to a csv file.
     
@@ -81,7 +81,7 @@ def writeCSV(filename, data, cols):
         writer.writerows(zip(*[data[col] for col in cols]))
 
 
-def findTreeGroupingFolders(item):
+def find_tree_grouping_folders(item):
     """
     Return a list of Tree Grouping Folders for a Model item containder (e.g., Named Selections)
     
@@ -101,7 +101,7 @@ def findTreeGroupingFolders(item):
     return TreeGroupingFolderList
     
 
-def getNamedSelectionsGroupByName(name):
+def get_named_sels_group_by_name(name):
     """
     Get the Named Selections grouping folder by name
     
@@ -114,13 +114,13 @@ def getNamedSelectionsGroupByName(name):
     -------
     Ansys.ACT.Automation.Mechanical.TreeGroupingFolder
     """
-    groups = findTreeGroupingFolders(Model.NamedSelections)
+    groups = find_tree_grouping_folders(Model.NamedSelections)
     for group in groups:
         if group.Name == name:
             return group
 
 
-def getNodeAtMax(fc):
+def get_node_at_max(fc):
     """
     Get node ID at the location of max value from a fields container
     
@@ -147,58 +147,59 @@ def getNodeAtMax(fc):
 
 ##################### GET RESULTS FROM THE BASE STATIC STRUCTURAL ANALYSIS #########################
 # Get the data source from the Static Structural Analysis
-ssAnalysis = ExtAPI.DataModel.Project.Model.Analyses[StaticStrAnalysisNumber]
-ssResultsFile = ssAnalysis.ResultFileName
-dataSource = dpf.DataSources()
-dataSource.SetResultFilePath(ssResultsFile)
-meshData = ssAnalysis.MeshData
+ss_analysis = ExtAPI.DataModel.Project.Model.Analyses[static_str_analysis_num]
+ss_res_file = ss_analysis.ResultFileName
+data_source = dpf.DataSources()
+data_source.SetResultFilePath(ss_res_file)
+mesh_data = ss_analysis.MeshData
 
 # Static Structural model and time steps
-ssModel = dpf.Model(dataSource)
-mesh = ssModel.Mesh
-ssAllTimes = ssModel.TimeFreqSupport.TimeFreqs.Data
-ssTimeUnitStr = str(ssModel.TimeFreqSupport.TimeFreqs.Unit)               # Time stepping unit
-ssTimeUnit = '[' + ssTimeUnitStr + ']'
-ssNumberSets = ssModel.TimeFreqSupport.NumberSets      # Number of time steps
-ssTimeIds = range(1, ssNumberSets + 1)                 # List of time steps
-ssTimeSets = ssModel.TimeFreqSupport.TimeFreqs.ScopingIds  # List of time steps
+ss_model = dpf.Model(data_source)
+mesh = ss_model.Mesh
+ss_all_times = ss_model.TimeFreqSupport.TimeFreqs.Data
+ss_time_unit_str = str(ss_model.TimeFreqSupport.TimeFreqs.Unit)               # Time stepping unit
+ss_time_unit = '[' + ss_time_unit_str + ']'
+ss_num_sets = ss_model.TimeFreqSupport.NumberSets      # Number of time steps
+ss_time_ids = range(1, ss_num_sets + 1)                 # List of time steps
+ss_time_sets = ss_model.TimeFreqSupport.TimeFreqs.ScopingIds  # List of time steps
+ss_active_times = [ss_all_times[t-1] for t in ss_time_ids]       # Solution times corresponding to available ss_time_ids
 
 # Read mesh in results file
-meshOp = dpf.operators.mesh.mesh_provider() 
-meshOp.inputs.data_sources.Connect(dataSource)
-my_mesh = meshOp.outputs.mesh.GetData()
+mesh_op = dpf.operators.mesh.mesh_provider() 
+mesh_op.inputs.data_sources.Connect(data_source)
+my_mesh = mesh_op.outputs.mesh.GetData()
 
 # Time scoping
-timeScoping = dpf.Scoping()
-timeScoping.Ids = [ssTimeIds[len(ssTimeIds)-1]]       # Last time step
-#timeScoping.Ids = ssTimeIds   # all times
-timeScoping.Location = 'Time'
+time_scoping = dpf.Scoping()
+time_scoping.Ids = [ss_time_ids[len(ss_time_ids)-1]]       # Last time step
+#time_scoping.Ids = ss_time_ids   # all times
+time_scoping.Location = 'Time'
 
 # Get all named selections that are grouped under the folder NAMED_SEL_FOLDER
-nsGroup = getNamedSelectionsGroupByName(NAMED_SEL_FOLDER)
-ns = [n for n in nsGroup.Children]
-nsNames = [n.Name for n in ns]
-nsIds = [n.ObjectId for n in ns]
-nsEntities = [n.Entities for n in ns]
+ns_group = get_named_sels_group_by_name(NAMED_SEL_FOLDER)
+ns = [n for n in ns_group.Children]
+ns_names = [n.Name for n in ns]
+ns_ids = [n.ObjectId for n in ns]
+ns_entities = [n.Entities for n in ns]
 
  # Create Named Selection operator
-nameSelOp = dpf.operators.scoping.on_named_selection()
-nameSelOp.inputs.data_sources.Connect(dataSource)
-nameSelOp.inputs.requested_location.Connect('Nodal')
+name_sel_op = dpf.operators.scoping.on_named_selection()
+name_sel_op.inputs.data_sources.Connect(data_source)
+name_sel_op.inputs.requested_location.Connect('Nodal')
     
 # Create vonMises stress operator
-seqvOp = dpf.operators.result.stress_von_mises()
-seqvOp.inputs.data_sources.Connect(dataSource)
-seqvOp.inputs.time_scoping.Connect(timeScoping)
-seqvOp.inputs.requested_location.Connect('Nodal')
+seqv_op = dpf.operators.result.stress_von_mises()
+seqv_op.inputs.data_sources.Connect(data_source)
+seqv_op.inputs.time_scoping.Connect(time_scoping)
+seqv_op.inputs.requested_location.Connect('Nodal')
     
 # Create the min-max operator
-#minMaxOp = dpf.operators.min_max.min_max_fc()
-minMaxOp = dpf.operators.min_max.min_max()
+#min_max_op = dpf.operators.min_max.min_max_fc()
+min_max_op = dpf.operators.min_max.min_max()
 
 # Create the unit convert operator
-unitConvOp = dpf.operators.math.unit_convert_fc()
-unitConvOp.inputs.unit_name.Connect(stressUnitStr)
+unit_conv_op = dpf.operators.math.unit_convert_fc()
+unit_conv_op.inputs.unit_name.Connect(stress_unit_str)
 
 # For each named delection, get the element Ids, Node Ids, and store them in a dictionary
 res = {}
@@ -212,71 +213,71 @@ for n in ns:
     res[nid]['SS Max Eqv Stress'] = []
     
     #Get the mesh element and node Ids
-    elemIds = []
-    nodeIds = []
+    elem_ids = []
+    node_ids = []
     for nlocId in n.Location.Ids:
-        solMesh = meshData.MeshRegionById(nlocId)
-        elemIds += solMesh.ElementIds
-        nodeIds += solMesh.NodeIds
-    res[nid]['Elements'] = elemIds
-    res[nid]['Nodes'] = nodeIds
+        sol_mesh = mesh_data.MeshRegionById(nlocId)
+        elem_ids += sol_mesh.ElementIds
+        node_ids += sol_mesh.NodeIds
+    res[nid]['Elements'] = elem_ids
+    res[nid]['Nodes'] = node_ids
     
     # Scope the von Mises stress results to the element Ids
     scoping = dpf.Scoping()
-    scoping.Ids = elemIds
+    scoping.Ids = elem_ids
     scoping.Location = dpf.locations.elemental
-    seqvOp.inputs.mesh_scoping.Connect(scoping)
-    vmStressFC = seqvOp.outputs.fields_container
-    vmStress = vmStressFC.GetData()
+    seqv_op.inputs.mesh_scoping.Connect(scoping)
+    vm_stress_fc = seqv_op.outputs.fields_container
+    vm_stress = vm_stress_fc.GetData()
     
     # Remove fields with 0 entities by creating a new fields container by adding fields
     # if they are greater than zero.
     # Create empry fields_container and set label space equal to that of the stress FC
     fc = dpf.FieldsContainer()
-    fc.Labels = list(vmStress.GetLabelSpace(0).Keys)
-    fcLblSpcLen = len(fc.Labels)
+    fc.Labels = list(vm_stress.GetLabelSpace(0).Keys)
+    fc_lbl_spc_len = len(fc.Labels)
     # Get fields with more than zero entities
     j = 1
-    for i in range(vmStress.FieldCount):
-        if vmStress[i].ElementaryDataCount > 0:
-            fc.Add(vmStress[i],vmStress.GetLabelSpace(i))
+    for i in range(vm_stress.FieldCount):
+        if vm_stress[i].ElementaryDataCount > 0:
+            fc.Add(vm_stress[i],vm_stress.GetLabelSpace(i))
             j = j + 1
     
     # Convert the von Mises stress to desired stress units
-    unitConvOp.inputs.fields_container.Connect(fc)
-    vmStress = unitConvOp.outputs.fields_container.GetData()
+    unit_conv_op.inputs.fields_container.Connect(fc)
+    vm_stress = unit_conv_op.outputs.fields_container.GetData()
 
     # Add values of stress for all times in time scoping
-    for t in range(len(timeScoping.Ids)):
-        minMaxOp.inputs.field.Connect(vmStress[t])
-        maxVmStress = minMaxOp.outputs.getfield_max()
-        res[nid]['SS Times'].append(ssAllTimes[t])
-        res[nid]['SS Sets'].append(timeScoping.Ids[t])
-        res[nid]['SS Eqv Stress'].append(vmStress[t].Data[0])
-        res[nid]['SS Eqv Stress FC Before Unit Conv'] = vmStressFC.GetData()
-        res[nid]['SS Eqv Stress FC'] = vmStress
-        res[nid]['SS Node with Max Stress'] = getNodeAtMax(vmStress[t])
-        res[nid]['SS Max Eqv Stress'] = maxVmStress.Data[0]
+    for t in range(len(time_scoping.Ids)):
+        min_max_op.inputs.field.Connect(vm_stress[t])
+        max_vm_stress = min_max_op.outputs.getfield_max()
+        res[nid]['SS Times'].append(ss_all_times[t])
+        res[nid]['SS Sets'].append(time_scoping.Ids[t])
+        res[nid]['SS Eqv Stress'].append(vm_stress[t].Data[0])
+        res[nid]['SS Eqv Stress FC Before Unit Conv'] = vm_stress_fc.GetData()
+        res[nid]['SS Eqv Stress FC'] = vm_stress
+        res[nid]['SS Node with Max Stress'] = get_node_at_max(vm_stress[t])
+        res[nid]['SS Max Eqv Stress'] = max_vm_stress.Data[0]
 
 
 # Create data dictionary to be written to output csv file
 data = {}
 cols = ['Named Selection',
         'Named Selection ID',
-        'Stat Str Time ' + ssTimeUnit,
+        'Stat Str Time ' + ss_time_unit,
         'Stat Str Set',
-        'Stat Str Max Eqv Stress ' + stressUnit,
+        'Stat Str Max Eqv Stress ' + stress_unit,
         'Node of Max']
 
 for c in cols:
     data[c] = []
 
 for nid in sorted(res.keys()):
-    for t in range(len(timeScoping.Ids)):
+    for t in range(len(time_scoping.Ids)):
         data[cols[0]].append(res[nid]['Name'])
         data[cols[1]].append(nid)
         data[cols[2]].append(res[nid]['SS Times'][t])
-        data[cols[3]].append(timeScoping.Ids[t])
+        data[cols[3]].append(time_scoping.Ids[t])
         data[cols[4]].append(res[nid]['SS Max Eqv Stress'])
         data[cols[5]].append(res[nid]['SS Node with Max Stress'])
         
@@ -286,8 +287,8 @@ For each named selection, write out the equivalent stress at the node that has t
 equivalent stress value in the Static Structural system.
 """
 
-if len(childAnalysisNumbers) > 0:
-    for a in childAnalysisNumbers:
+if len(child_analysis_nums) > 0:
+    for a in child_analysis_nums:
         analysis = ExtAPI.DataModel.Project.Model.Analyses[a]
         solver_data = analysis.Solution.SolverData
         analysis_type = analysis.AnalysisType
@@ -296,47 +297,48 @@ if len(childAnalysisNumbers) > 0:
       
         # Set the scale factor = 1 for non Random Vibration analyses
         if str(analysis_type).ToLower() == 'spectrum':
-            scaleFactor = RANDOM_VIBRATION_SIGMA
+            scale_fac = RANDOM_VIBRATION_SIGMA
         else:
-            scaleFactor = 1
+            scale_fac = 1
         
         # Result Data
-        filepath = analysis.ResultFileName
+        file_path = analysis.ResultFileName
         
         # Data Source
-        dataSource = dpf.DataSources()
-        dataSource.SetResultFilePath(filepath)
+        data_source = dpf.DataSources()
+        data_source.SetResultFilePath(file_path)
         
         # Model and time steps
-        model = dpf.Model(dataSource)
+        model = dpf.Model(data_source)
         all_times = model.TimeFreqSupport.TimeFreqs.Data
-        timeUnitStr = str(model.TimeFreqSupport.TimeFreqs.Unit)               # Time stepping unit
-        timeUnit = '[' + timeUnitStr + ']'
+        time_unit_str = str(model.TimeFreqSupport.TimeFreqs.Unit)               # Time stepping unit
+        time_unit = '[' + time_unit_str + ']'
         number_sets = model.TimeFreqSupport.NumberSets      # Number of time steps
-        timeIds = range(1, number_sets + 1)                 # List of time steps
+        time_ids = range(1, number_sets + 1)                 # List of time steps
         if str(analysis_type).ToLower() == 'spectrum':
-            timeIds = [2]
+            time_ids = [2]
         elif str(analysis_type).ToLower() == 'responsespectrum':
-            timeIds = [1]
-        timeSets = model.TimeFreqSupport.TimeFreqs.ScopingIds  # List of time steps
+            time_ids = [1]
+        time_sets = model.TimeFreqSupport.TimeFreqs.ScopingIds  # List of time steps
+        active_times = [ss_all_times[t-1] for t in time_ids]       # Solution times corresponding to available ss_time_ids
         
         # Read mesh in results file
-        meshOp.inputs.data_sources.Connect(dataSource)
-        my_mesh = meshOp.outputs.mesh.GetData()
+        mesh_op.inputs.data_sources.Connect(data_source)
+        my_mesh = mesh_op.outputs.mesh.GetData()
         
         # Time scoping
-        timeScoping.Ids = timeIds
+        time_scoping.Ids = time_ids
         
         # Create von Mises stress operator
-        seqvOp.inputs.data_sources.Connect(dataSource)
-        seqvOp.inputs.time_scoping.Connect(timeScoping)
+        seqv_op.inputs.data_sources.Connect(data_source)
+        seqv_op.inputs.time_scoping.Connect(time_scoping)
        
         # Create scale operator
-        scaleOp = dpf.operators.math.scale_fc()
+        scale_op = dpf.operators.math.scale_fc()
         if ANSYS_VER.ToUpper() == '2024 R2':
-            scaleOp.inputs.ponderation.Connect(scaleFactor)   # 2024 R2
+            scale_op.inputs.ponderation.Connect(scale_fac)   # 2024 R2
         else:
-            scaleOp.inputs.weights.Connect(scaleFactor)       # 2025 R2
+            scale_op.inputs.weights.Connect(scale_fac)       # 2025 R2
         
         # Get the von Mises stress at the corresponding node of the static structural analysis.  This is an 
         # "alternating stress" component of the analysis.
@@ -346,42 +348,42 @@ if len(childAnalysisNumbers) > 0:
             scoping = dpf.Scoping()
             scoping.Ids = res[nid]['Elements']
             scoping.Location = dpf.locations.elemental
-            seqvOp.inputs.mesh_scoping.Connect(scoping)
-            vmStress = seqvOp.outputs.fields_container.GetData()
+            seqv_op.inputs.mesh_scoping.Connect(scoping)
+            vm_stress = seqv_op.outputs.fields_container.GetData()
             
             # Remove fields with 0 entities by creating a new fields container by adding fields
             # if they are greater than zero.
             # Create empry fields_container and set label space equal to that of the stress FC
             fc = dpf.FieldsContainer()
-            fc.Labels = list(vmStress.GetLabelSpace(0).Keys)
-            fcLblSpcLen = len(fc.Labels)
+            fc.Labels = list(vm_stress.GetLabelSpace(0).Keys)
+            fc_lbl_spc_len = len(fc.Labels)
             # Get fields with more than zero entities
             j = 1
-            for i in range(vmStress.FieldCount):
-                if vmStress[i].ElementaryDataCount > 0:
-                    fc.Add(vmStress[i],vmStress.GetLabelSpace(i))
+            for i in range(vm_stress.FieldCount):
+                if vm_stress[i].ElementaryDataCount > 0:
+                    fc.Add(vm_stress[i],vm_stress.GetLabelSpace(i))
                     j = j + 1
             
             # Convert the von Mises stress to desired stress units
-            unitConvOp.inputs.fields_container.Connect(fc)
+            unit_conv_op.inputs.fields_container.Connect(fc)
             # Scale the von Mises stress
-            vmStressFC = unitConvOp.outputs.fields_container
-            scaleOp.inputs.fields_container.Connect(vmStressFC)
-            vmStress = scaleOp.outputs.fields_container.GetData()
-            res[nid][analysis_name + ' vm_scldFC'] = vmStress
-            res[nid][analysis_name + ' Eqv Stress at Max SS Node'] = max(vmStress[0].GetEntityDataById(node))
+            vm_stress_fc = unit_conv_op.outputs.fields_container
+            scale_op.inputs.fields_container.Connect(vm_stress_fc)
+            vm_stress = scale_op.outputs.fields_container.GetData()
+            res[nid][analysis_name + ' vm_scldFC'] = vm_stress
+            res[nid][analysis_name + ' Eqv Stress at Max SS Node'] = max(vm_stress[0].GetEntityDataById(node))
             
         # Add max stress column to data dictionary
-        cols.append(analysis_name + ' Eqv Stress at Max SS Node ' + stressUnit)
-        data[analysis_name + ' Eqv Stress at Max SS Node ' + stressUnit] = []
+        cols.append(analysis_name + ' Eqv Stress at Max SS Node ' + stress_unit)
+        data[analysis_name + ' Eqv Stress at Max SS Node ' + stress_unit] = []
         for nid in sorted(res.keys()):
-            data[analysis_name + ' Eqv Stress at Max SS Node ' + stressUnit].append(res[nid][analysis_name + ' Eqv Stress at Max SS Node'])
+            data[analysis_name + ' Eqv Stress at Max SS Node ' + stress_unit].append(res[nid][analysis_name + ' Eqv Stress at Max SS Node'])
 
 
 x = datetime.datetime.now()
     
 file_name_body = 'Max_Eqv_stress_summary_' + x.strftime("%m") + "-" + x.strftime("%d") + "-" + x.strftime("%y")
-writeCSV(user_dir + '/' + file_name_body + ".csv", data, cols)
+write_csv(user_dir + '/' + file_name_body + ".csv", data, cols)
     
 print("[INFO] Process completed for Max Eqv Stress results")
 print("Open File: " + chr(34) + user_dir + chr(92) + file_name_body + ".csv" + chr(34))
