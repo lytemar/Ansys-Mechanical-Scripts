@@ -46,10 +46,16 @@ These scripts are run as Scripting objects from the Automation tab to export des
   - For results objects that are in a tree folder, read the results table and write the maximum total deformation
     to spreadsheet.
 
-- ### get_mean_alter_eqv_strs_for_pre-stressed_RS_RV.py
+- ### get_MAX_mean_alter_eqv_strs_for_pre-stressed_RS_RV.py
   - For prestressed random vibration (RV)/response spectrum (RS) analyses, find the node with maximum equivalent stress
     in the static structural analysis, call that the mean stress, and find the associated equivalent stress in the
 	downstream RS/RV analyses, call that an alternating stress, and export summary to spreadsheet.
+	
+- ### get_mean_alter_eqv_strs_for_pre-stressed_RS_RV.py
+  - For a list of named selections and for prestressed random vibration (RV)/response spectrum (RS) analyses, get all
+    nodal maximum equivalent stresses in the static structural analysis, called the mean stress, and get the associated
+	equivalent stress in the downstream RS/RV analyses, called the alternating stress, and export summary to
+	spreadsheet. RV results are exported as 1-sigma, 2-sigma, and 3-sigma results.
 	
 - ### get_nodal_contact_pressure_for_contact_by_name.py
   - For a nonlinear contact region specified by name, export contact pressure, contact side node ids and coordinates,
