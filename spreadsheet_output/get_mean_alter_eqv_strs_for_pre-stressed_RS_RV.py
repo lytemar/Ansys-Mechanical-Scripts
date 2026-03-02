@@ -8,12 +8,13 @@ Then, the corresponding equivalent stress from the child analysis is calculated 
 The named selections that are of interest are placed in a Tree Grouping folder called `Results Scoping`.
 
 This has been tested on 2024 R2 and 2025 R1.
+
 """
 
 ################################## USER INPUTS ##################################
 static_str_analysis_num = 0     # Analysis numbers for the static structural analysis (susally = 0)
 static_struct_last_time_only = 'y'     # 'Y' = only output last time step for static structural, 'N' = output all time steps
-child_analysis_nums = [2]          # LIST OF CHILD ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
+child_analysis_nums = [2, 3]          # LIST OF CHILD ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
 len_unit_str = 'in'            # DESIRED LENGTH OUTPUT UNIT (usually 'in' or 'mm', case sensitive)
 force_unit_str = 'lbf'            # DESIRED FOURCE OUTPUT UNIT (usually 'lbf' or 'N', case sensitive)
 NAMED_SEL_FOLDER = 'Results Scoping'        # Named selection folder name containing NS used for results scoping
@@ -217,10 +218,10 @@ cols = ['Named Selection',
         'Node',
         'Stat Str Time ' + ss_time_unit,
         'Stat Str Set',
-        'Mean Eqv Stress ' + stress_unit,
-        #'Node of Max'
+        'Mean Eqv Stress ' + stress_unit
         ]
 
+cols_ss = cols[:]           # Copy the cols list for future use
 for c in cols:
     data[c] = []
 
@@ -258,8 +259,10 @@ for n in ns:
 
     # Add values of stress for all times in time scoping
     res[nid]['scoping_ids'] = ss_vm_stress[0].ScopingIds   # mesh_scoping should not change
+    res[nid]['mean_stress_fc'] = {}
     for i, t in enumerate(ss_active_times):
         for nd in ss_vm_stress[i].ScopingIds:
+            res[nid]['mean_stress_fc'][t] = ss_vm_stress[i]
             data[cols[0]].append(ns_name)
             data[cols[1]].append(nid)
             data[cols[2]].append(nd)
@@ -275,6 +278,7 @@ equivalent stress value in the Static Structural system.
 
 if len(child_analysis_nums) > 0:
     for a in child_analysis_nums:
+        cols = cols_ss[:]   # Reset the columns to those from the static structural analysis
         analysis = ExtAPI.DataModel.Project.Model.Analyses[a]
         solver_data = analysis.Solution.SolverData
         analysis_type = analysis.AnalysisType
@@ -308,47 +312,66 @@ if len(child_analysis_nums) > 0:
         seqv_op.inputs.data_sources.Connect(data_source)
         seqv_op.inputs.time_scoping.Connect(time_scoping)
         
-        # Create an alternating stress column for each scale factor
-        for sf in [1, 2, 3]:
-            # Create scale operator
-            scale_op = dpf.operators.math.scale_fc()
-            if ANSYS_VER.ToUpper() == '2024 R2':
-                scale_op.inputs.ponderation.Connect(sf)   # 2024 R2
-            else:
-                scale_op.inputs.weights.Connect(sf)       # 2025 R2
-            
-            # Add column to output data dictionary
-            col_name = str(sf) + '-sigma Alt Eqv Stress ' + stress_unit
-            cols.append(col_name)
-            data[col_name] = []
+        # Get the (unscaled) equivalent stress for each named selection
+        if str(analysis_type).ToLower() == 'responsespectrum':
+            col_name = 'RS Alt Eqv Stress ' + stress_unit
+        elif str(analysis_type).ToLower() == 'spectrum':
+            col_name = '1-sigma Alt Eqv Stress ' + stress_unit
+        cols.append(col_name)
+        data[col_name] = []
+        for n in ns:
+            nid = n.ObjectId
+            mesh_scoping = dpf.Scoping()
+            mesh_scoping.Ids = res[nid]['Elements']
+            mesh_scoping.Location = dpf.locations.elemental
+            seqv_op.inputs.mesh_scoping.Connect(mesh_scoping)
+            vm_stress = seqv_op.outputs.fields_container.GetData()
+            # Remove fields with 0 entities by creating a new fields container
+            vm_stress_fc = remove_fields_with_zero_entities(vm_stress)
+            # Convert the von Mises stress to desired stress units
+            unit_conv_op.inputs.fields_container.Connect(vm_stress_fc)
+            # Scale the von Mises stress
+            vm_stress_fc = unit_conv_op.outputs.fields_container
+            vm_stress = vm_stress_fc.GetData()
+            res[nid]['alt_stress_fc'] = vm_stress_fc
+            # Add to data dictionary
+            for i, t in enumerate(ss_active_times):
+                for nd in res[nid]['scoping_ids']:
+                    data[col_name].append(vm_stress[0].GetEntityDataById(nd)[0])
+        
+        # Create an alternating stress column for each scale factor if a RV analysis
+        if str(analysis_type).ToLower() == 'spectrum':
+            for sf in [2, 3]:
+                # Create scale operator
+                scale_op = dpf.operators.math.scale_fc()
+                if ANSYS_VER.ToUpper() == '2024 R2':
+                    scale_op.inputs.ponderation.Connect(sf)   # 2024 R2
+                else:
+                    scale_op.inputs.weights.Connect(sf)       # 2025 R2
                 
-            # Get the von Mises stress at the corresponding node of the static structural analysis.  This is an 
-            # "alternating stress" component of the analysis.
-            for n in ns:
-                nid = n.ObjectId
-                mesh_scoping = dpf.Scoping()
-                mesh_scoping.Ids = res[nid]['Elements']
-                mesh_scoping.Location = dpf.locations.elemental
-                seqv_op.inputs.mesh_scoping.Connect(mesh_scoping)
-                vm_stress = seqv_op.outputs.fields_container.GetData()
-                # Remove fields with 0 entities by creating a new fields container
-                vm_stress_fc = remove_fields_with_zero_entities(vm_stress)
-                # Convert the von Mises stress to desired stress units
-                unit_conv_op.inputs.fields_container.Connect(vm_stress_fc)
-                # Scale the von Mises stress
-                vm_stress_fc = unit_conv_op.outputs.fields_container
-                scale_op.inputs.fields_container.Connect(vm_stress_fc)
-                vm_stress = scale_op.outputs.fields_container.GetData()
-                for i, t in enumerate(ss_active_times):
-                    for nd in res[nid]['scoping_ids']:
-                        data[col_name].append(vm_stress[0].GetEntityDataById(nd)[0])
+                # Add column to output data dictionary
+                col_name = str(sf) + '-sigma Alt Eqv Stress ' + stress_unit
+                cols.append(col_name)
+                data[col_name] = []
+                    
+                # Get the von Mises stress at the corresponding node of the static structural analysis.  This is an 
+                # "alternating stress" component of the analysis.
+                for n in ns:
+                    nid = n.ObjectId
+                    # Scale the von Mises stress
+                    scale_op.inputs.fields_container.Connect(res[nid]['alt_stress_fc'])
+                    res[nid][str(sf) + '-sigma_alt_stress_fc'] = scale_op.outputs.fields_container
+                    vm_stress = res[nid][str(sf) + '-sigma_alt_stress_fc'].GetData()
+                    for i, t in enumerate(ss_active_times):
+                        for nd in res[nid]['scoping_ids']:
+                            data[col_name].append(vm_stress[0].GetEntityDataById(nd)[0])
 
-x = datetime.datetime.now()
-    
-file_name_body = analysis.Name + ' - type=' + str(analysis_type) + ' mean_alt_nodal_eqv_stress_summary_' + x.strftime("%m") + "-" + x.strftime("%d") + "-" + x.strftime("%y")
-write_csv(user_dir + '/' + file_name_body + ".csv", data, cols)
-    
-print("[INFO] Process completed for Mean-Alternating Eqv Stress results")
-print("Open File: " + chr(34) + user_dir + chr(92) + file_name_body + ".csv" + chr(34))
+        x = datetime.datetime.now()
+            
+        file_name_body = analysis.Name + ' - type=' + str(analysis_type) + ' mean_alt_nodal_eqv_stress_summary_' + x.strftime("%m") + "-" + x.strftime("%d") + "-" + x.strftime("%y")
+        write_csv(user_dir + '/' + file_name_body + ".csv", data, cols)
+            
+        print("[INFO] Process completed for Mean-Alternating Eqv Stress results")
+        print("Open File: " + chr(34) + user_dir + chr(92) + file_name_body + ".csv" + chr(34))
 
 
