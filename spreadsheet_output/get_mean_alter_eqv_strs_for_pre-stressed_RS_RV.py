@@ -9,12 +9,20 @@ The named selections that are of interest are placed in a Tree Grouping folder c
 
 This has been tested on 2024 R2 and 2025 R1.
 
+THIS DOESN'T WORK CORRECTLY FOR RESPONSE SPECTRUM ANALYSES
+
+
+
+
+
+
+
 """
 
 ################################## USER INPUTS ##################################
 STATIC_STR_ANALYSIS_NUM = 0     # Analysis numbers for the static structural analysis (susally = 0)
 STATIC_STR_LAST_TIME_ONLY = 'y'     # 'Y' = only output last time step for static structural, 'N' = output all time steps
-CHILD_ANALYSIS_NUMS = [2, 3]          # LIST OF CHILD ANALYSIS SYSTEMS TO APPLY THIS SCRIPT
+CHILD_ANALYSIS_NUMS = [2, 3]          # LIST OF CHILD ANALYSIS RANDOM VIBRATION SYSTEMS TO APPLY THIS SCRIPT
 ASSESS_FATIGUE = 'y'        # Flag to assess fatigue using Soderberg, Goodman, ASME, etc.
 FATIGUE_LINE_TYPE = 'Ger'     # Fatigue line type: one of {'G': Goodman, 'S': Soderberg, 'Ger': Gerber, 'ASME': ASME-elliptic}
                               # Requires S-N curve and strength parameters for material in Engineering Data
@@ -52,29 +60,174 @@ stress_unit = '[' + stress_unit_str + ']'          # Desired stress output unit
 len_quan = Quantity(1, LEN_UNIT_STR)         # Desired length output unit quantity
 force_quan = Quantity(1, FORCE_UNIT_STR)           # Desired force output unit quantity
 stress_quan = Quantity(1, stress_unit_str)         # Desired stress output unit quantity
+STATIC_STR_LAST_TIME_ONLY = STATIC_STR_LAST_TIME_ONLY.ToLower()
+ASSESS_FATIGUE = ASSESS_FATIGUE.ToLower()
+FATIGUE_LINE_TYPE = FATIGUE_LINE_TYPE.ToLower()
+COMPUTE_DAMAGE = COMPUTE_DAMAGE.ToLower()
 
-def write_csv(filename, data, cols):
+
+def compute_load_line(alt_str_fc, mean_str_fc):
     """
-    Function to write python data to a csv file.
+    Compute the fatigue load line for stress fields containers
     
     Parameters
     ----------
-    filename : str
-        Filepath for the output file
-    data : dict
-        Data dictionary
-    cols : list of str
-        Column header names
+    alt_str_fc : FieldsContainer
+        Nodal alternating stresses (Sa)
+    mean_str_fc : FieldsContainer
+        Nodal mean stresses (Sm)
     
     Returns
     -------
-    None
+    result : FieldsContainer
+        Fatigue load line r = Sa / Sm
     """
-    with open(filename, 'wb') as csvfile:
-        writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        writer.writerow(cols)
-        writer.writerows(zip(*[data[col] for col in cols]))
+    op = dpf.operators.math.component_wise_divide()
+    op.inputs.fieldA.Connect(alt_str_fc[0])
+    # Create an empty Fields container to contain results using mean stress label space
+    result = dpf.FieldsContainer()
+    result.Labels = list(mean_str_fc.GetLabelSpace(0).Keys)
+    result_lbl_spc_len = len(result.Labels)
+    # Get fields with more than zero entities
+    for i in range(mean_str_fc.FieldCount):
+        if mean_str_fc[i].ElementaryDataCount > 0:
+            op.inputs.fieldB.Connect(mean_str_fc[i])
+            res = op.outputs.field.GetData()
+            result.Add(res, mean_str_fc.GetLabelSpace(i))
+    return result
 
+
+def fatigue_safety_factor(Se, S, Sa, Sm, fat_criterion='s'):
+    """
+    Compute the factor of safety in fatigue
+    
+    Parameters
+    ----------
+    Se : Field
+        Endurance limit for each node
+    S : Field
+        Tensile yield strength or tensile ultimate stress for each node, depending on fatigue criterion
+    Sa : FieldsContainer
+        Nodal alternating stresses
+    Sm : FieldsContainer
+        Nodal mean stresses
+    fat_criterion : str, optional
+        Fatigue criterion, one of fat_criteria.keys().  Default = 's' for Soderberg.
+    
+    Returns
+    -------
+    nf : FieldsContainer
+        Nodal factor of safety in fatigue
+    """
+    # Create an empty Fields container to contain results using mean stress label spac
+    nf = dpf.FieldsContainer()
+    nf.Labels = list(Sm.GetLabelSpace(0).Keys)
+    nf_lbl_spc_len = len(nf.Labels)
+    div_op = dpf.operators.math.component_wise_divide()         # Component-wise division operator
+    div_fc_op = dpf.operators.math.component_wise_divide_fc()   # FieldsContainer division operator
+    prod_fc_op = dpf.operators.math.component_wise_product_fc() # FieldsContainer product operator
+    pow_fc_op = dpf.operators.math.pow_fc()                        # FieldsContainer raise to power operator
+    sqr_fc_op = dpf.operators.math.sqr_fc()                     # Fields container component-wise squaring operator
+    sqr_op = dpf.operators.math.sqr()                           # Component-wise squaring operator
+    sqrt_fc_op = dpf.operators.math.sqrt_fc()                   # Component-wise square root operator
+    sqrt_op = dpf.operators.math.sqrt()                         # Component-wise square root operator
+    add_op = dpf.operators.math.add_fc()                        # Sum two fields containers
+    scale_fc_op = dpf.operators.math.scale_fc()                 # Fields container scaling operator
+    scale_op = dpf.operators.math.scale()                       # Component-wise scaling operator
+    add_const_fc_op = dpf.operators.math.add_constant_fc()      # Add constant to a FieldsContainer operator
+    
+    # Create the ratio of Sa/Se which is used in all fatigue criteria
+    Sa_Se = dpf.FieldsFactory.CreateScalarField(numEntities=len(Sa[0].ScopingIds), location='Nodal')
+    div_op.inputs.fieldA.Connect(Sa[0])
+    div_op.inputs.fieldB.Connect(Se)
+    Sa_Se = div_op.outputs.field.GetData()
+    # Make a fields container for Sa/Se that has same label space as Sm
+    Sa_Se_fc = dpf.FieldsContainer()
+    Sa_Se_fc.Labels = list(Sm.GetLabelSpace(0).Keys)
+    for i in range(Sm.FieldCount):
+        if Sm[i].ElementaryDataCount > 0:
+            Sa_Se_fc.Add(Sa_Se, Sm.GetLabelSpace(i))
+    
+    # Compute the ratio of Sm/S, where S = Sy or Sut depending on the fatigue criterion
+    Sm_S = dpf.FieldsContainer()
+    Sm_S.Labels = list(Sm.GetLabelSpace(0).Keys)
+    for i in range(Sm.FieldCount):
+        if Sm[i].ElementaryDataCount > 0:
+            div_op.inputs.fieldA.Connect(Sm[i])
+            div_op.inputs.fieldB.Connect(S)
+            res = div_op.outputs.field.GetData()
+            Sm_S.Add(res, Sm.GetLabelSpace(i))
+            
+    # Soderberg and Goodman
+    if fat_criterion == 's' or fat_criterion == 'g':
+        # nf = 1 / (Sa/Se + Sm/S)
+        # Add Sa_Se and Sm_S and take inverse
+        add_op.inputs.fields_container1.Connect(Sa_Se)
+        add_op.inputs.fields_container2.Connect(Sm_S)
+        sum_temp = add_op.outputs.fields_container.GetData()
+        pow_fc_op.inputs.fields_container.Connect(sum_temp)
+        pow_fc_op.inputs.factor.Connect(-1)
+        nf = pow_fc_op.outputs.fields_container.GetData()
+    elif fat_criterion == 'asme':
+        # nf = sqrt{1 / [ (Sa/Se)^2 + (Sm/S)^2 ] }
+        # Square Sa/Se
+        sqr_op.inputs.field.Connect(Sa_Se)
+        Sa_Se_sq = sqr_op.outputs.field.GetData()
+        # Square Sm/S
+        sqr_fc_op.inputs.fields_container.Connect(Sm_S)
+        Sm_S_sq = sqr_fc_op.outputs.fields_container.GetData()
+        # Sum them, take inverse, then take square root
+        add_op.inputs.fields_container1.Connect(Sa_Se_sq)
+        add_op.inputs.fields_container2.Connect(Sm_S_sq)
+        sum_temp = add_op.outputs.fields_container.GetData()
+        pow_fc_op.inputs.fields_container.Connect(sum_temp)
+        pow_fc_op.inputs.factor.Connect(-1)
+        inv_temp = pow_fc_op.outputs.fields_container.GetData()
+        sqrt_fc_op.inputs.fields_container.Connect(inv_temp)
+        nf = sqrt_fc_op.outputs.fields_container.GetData()
+    elif fat_criterion == 'ger':
+        # nf = 1/2 * (S/Sm)^2 * Sa/Se * {-1 + sqrt[1 + (2 * Sm/S * Se/Sa)^2] }
+        # Create term1 = (2 * Sm/S * Se/Sa)^2 fields container
+        div_fc_op.inputs.fields_containerA.Connect(Sm_S)
+        div_fc_op.inputs.fields_containerB.Connect(Sa_Se_fc)
+        term1 = div_fc_op.outputs.fields_container.GetData()
+        if ANSYS_VER.ToUpper() == '2024 R2':
+            scale_fc_op.inputs.ponderation.Connect(2)   # 2024 R2
+        else:
+            scale_fc_op.inputs.weights.Connect(2)       # 2025 R2
+        scale_fc_op.inputs.fields_container.Connect(term1)
+        term1 = scale_fc_op.outputs.fields_container.GetData()
+        sqr_fc_op.inputs.fields_container.Connect(term1)
+        term1 = sqr_fc_op.outputs.fields_container.GetData()
+        # Compute -1 + sqrt(1 + term1)
+        add_const_fc_op.inputs.fields_container.Connect(term1)
+        add_const_fc_op.inputs.weights.Connect(1)
+        term2 = add_const_fc_op.outputs.fields_container.GetData()
+        sqrt_fc_op.inputs.fields_container.Connect(term2)
+        term2 = sqrt_fc_op.outputs.fields_container.GetData()
+        add_const_fc_op.inputs.fields_container.Connect(term2)
+        add_const_fc_op.inputs.weights.Connect(-1)
+        term2 = add_const_fc_op.outputs.fields_container.GetData()
+        # compute term3 = 1/2 * Sa/Se * term2
+        prod_fc_op.inputs.fields_container.Connect(term2)
+        prod_fc_op.inputs.fieldB.Connect(Sa_Se)
+        term3 = prod_fc_op.outputs.fields_container.GetData()
+        if ANSYS_VER.ToUpper() == '2024 R2':
+            scale_fc_op.inputs.ponderation.Connect(.5)   # 2024 R2
+        else:
+            scale_fc_op.inputs.weights.Connect(.5)       # 2025 R2
+        scale_fc_op.inputs.fields_container.Connect(term3)
+        term3 = scale_fc_op.outputs.fields_container.GetData()
+        # Finally, compute nf = (S/Sm)^2 * term3
+        pow_fc_op.inputs.fields_container.Connect(Sm_S)
+        pow_fc_op.inputs.factor.Connect(-2)
+        nf = pow_fc_op.outputs.fields_container.GetData()
+        prod_fc_op.inputs.fields_container.Connect(term2)
+        prod_fc_op.inputs.fieldB.Connect(nf)
+        nf = prod_fc_op.outputs.fields_container.GetData()
+    
+    return nf
+    
 
 def find_tree_grouping_folders(item):
     """
@@ -140,17 +293,38 @@ def remove_fields_with_zero_entities(fc):
     return result
 
 
-##################### GET RESULTS FROM THE BASE STATIC STRUCTURAL ANALYSIS #########################
+def write_csv(filename, data, cols):
+    """
+    Function to write python data to a csv file.
+    
+    Parameters
+    ----------
+    filename : str
+        Filepath for the output file
+    data : dict
+        Data dictionary
+    cols : list of str
+        Column header names
+    
+    Returns
+    -------
+    None
+    """
+    with open(filename, 'wb') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(cols)
+        writer.writerows(zip(*[data[col] for col in cols]))
+
 
 """
 ##### Get the data source and mesh from the Static Structural Analysis
 """
 ss_analysis = ExtAPI.DataModel.Project.Model.Analyses[STATIC_STR_ANALYSIS_NUM]
 ss_res_file = ss_analysis.ResultFileName
-data_source = dpf.DataSources()
-data_source.SetResultFilePath(ss_res_file)
+ss_data_source = dpf.DataSources()
+ss_data_source.SetResultFilePath(ss_res_file)
 mesh_data = ss_analysis.MeshData
-ss_model = dpf.Model(data_source)
+ss_model = dpf.Model(ss_data_source)
 mesh = ss_model.Mesh
 bodies = ExtAPI.DataModel.Project.Model.GetChildren(DataModelObjectCategory.Body, True) # create list with all bodies in the Mechanical tree
 
@@ -165,14 +339,15 @@ ss_time_ids = range(1, ss_num_sets + 1)                         # List of time s
 if STATIC_STR_LAST_TIME_ONLY.ToLower() == 'y':
     ss_time_ids = [ss_time_ids[len(ss_time_ids)-1]]             # Last time step
 ss_active_times = [ss_all_times[t-1] for t in ss_time_ids]      # Solution times corresponding to available ss_time_ids
-time_scoping = dpf.Scoping()
-time_scoping.Ids = ss_time_ids
-time_scoping.Location = 'Time'
+ss_time_scoping = dpf.Scoping()
+ss_time_scoping.Ids = ss_time_ids
+ss_time_scoping.Location = 'Time'
+
 
 """
 ##### Create material fatigue properties dictionary if need to assess fatigue
 """
-if ASSESS_FATIGUE.ToLower() == 'y':
+if ASSESS_FATIGUE == 'y':
     mats = {}
     mat_list = ExtAPI.DataModel.Project.Model.Materials.Children
     mat_names = [m.Name for m in mat_list]
@@ -227,37 +402,6 @@ ns_names = [n.Name for n in ns]
 ns_ids = [n.ObjectId for n in ns]
 ns_entities = [n.Entities for n in ns]
 
-"""
-##### Create von Mises stress operator
-"""
-seqv_op = dpf.operators.result.stress_von_mises()
-seqv_op.inputs.data_sources.Connect(data_source)
-seqv_op.inputs.time_scoping.Connect(time_scoping)
-seqv_op.inputs.requested_location.Connect('Nodal')
-    
-"""
-##### Create unit conversion operators
-"""
-unit_conv_fc_op = dpf.operators.math.unit_convert_fc()
-unit_conv_fc_op.inputs.unit_name.Connect(stress_unit_str)
-unit_conv_field_op = dpf.operators.math.unit_convert()
-unit_conv_field_op.inputs.unit_name.Connect(stress_unit_str)
-
-"""
-# Create data dictionary and static structural columns to be written to output csv file
-"""
-data = {}
-cols = ['Named Selection',
-        'Named Selection ID',
-        'Node',
-        'Stat Str Time ' + ss_time_unit,
-        'Stat Str Set',
-        'Mean Eqv Stress ' + stress_unit
-        ]
-
-cols_ss = cols[:]           # Copy the cols list for future use
-for c in cols:
-    data[c] = []
 
 """
 For each named selection (NS):
@@ -274,11 +418,26 @@ For each named selection (NS):
 For each named selection, get the element Ids, Node Ids, and store them in the data dictionary.
 If fatigue is to be assessed, create Fields that contain fatigue parameters with nodal location. 
 """
-res = {}
+
 for n in ns:
     nid = n.ObjectId            # Named selection ID
     ns_name = n.Name            # Named selection Name
-    res[nid] = {}
+
+    """
+    # Create data dictionary and static structural columns to be written to output csv file
+    """
+    data = {}
+    cols = ['Named Selection',
+            'Named Selection ID',
+            'Node',
+            'Stat Str Time ' + ss_time_unit,
+            'Stat Str Set',
+            'Mean Eqv Stress ' + stress_unit
+            ]
+    
+    cols_ss = cols[:]           # Copy the cols list for future use
+    for c in cols:
+        data[c] = []
 
     """
     1. Get the mesh element and node Ids
@@ -289,9 +448,9 @@ for n in ns:
         sol_mesh = mesh_data.MeshRegionById(nlocId)
         elem_ids += sol_mesh.ElementIds
         node_ids += sol_mesh.NodeIds
-    res[nid]['Elements'] = elem_ids
-    res[nid]['Nodes'] = node_ids
-    
+    node_ids = list(set(node_ids))
+    elem_ids = list(set(elem_ids))
+
     """
     2. Create a von Mises stress fields container for the static structural analysis, known as the mean stress.
     """
@@ -299,31 +458,49 @@ for n in ns:
     mesh_scoping = dpf.Scoping()
     mesh_scoping.Ids = elem_ids
     mesh_scoping.Location = dpf.locations.elemental
+    seqv_op = dpf.operators.result.stress_von_mises()
+    seqv_op.inputs.data_sources.Connect(ss_data_source)
+    seqv_op.inputs.time_scoping.Connect(ss_time_scoping)
+    seqv_op.inputs.requested_location.Connect('Nodal')
     seqv_op.inputs.mesh_scoping.Connect(mesh_scoping)
     mean_stress_fc = seqv_op.outputs.fields_container
     mean_stress = mean_stress_fc.GetData()
-    
+
     # Remove fields with 0 entities by creating a new fields container
     mean_stress_fc = remove_fields_with_zero_entities(mean_stress)
 
     # Convert the von Mises stress to desired stress units
+    unit_conv_fc_op = dpf.operators.math.unit_convert_fc()
+    unit_conv_fc_op.inputs.unit_name.Connect(stress_unit_str)
     unit_conv_fc_op.inputs.fields_container.Connect(mean_stress_fc)
     mean_stress = unit_conv_fc_op.outputs.fields_container.GetData()
+    nodes = mean_stress[0].ScopingIds
+
 
     """
     3.  Depending on the need to assess fatigue, obtain the material for each node along with the necessary strength
         parameters, creating fields for each strength parameter.
     """   
-    if ASSESS_FATIGUE.ToLower() == 'y':
-        nodes = mean_stress[0].ScopingIds
+    if ASSESS_FATIGUE == 'y':
+        fat_criteria = {'g': {'Name': 'Goodman'},
+                        's': {'Name': 'Soderberg'},
+                        'ger': {'Name': 'Gerber'},
+                        'asme': {'Name': 'ASME-elliptic'},
+                        'l': {'Name': 'Langer Static Yield'}
+                        }
         S_e = dpf.FieldsFactory.CreateScalarField(numEntities=len(nodes), location='Nodal')
         S_e.Unit = stress_unit_str
-        if FATIGUE_LINE_TYPE.ToLower() == 's' or FATIGUE_LINE_TYPE.ToLower() == 'asme':      # Soderberg or ASME elliptic
+        if FATIGUE_LINE_TYPE == 's' or FATIGUE_LINE_TYPE == 'asme':      # Soderberg or ASME elliptic
             S_y = dpf.FieldsFactory.CreateScalarField(numEntities=len(nodes), location='Nodal')
             S_y.Unit = stress_unit_str
-        elif FATIGUE_LINE_TYPE.ToLower() == 'g' or FATIGUE_LINE_TYPE.ToLower() == 'ger':      # Modified Goodman or Gerber
+            fat_criteria['s']['strength'] = S_y
+            fat_criteria['asme']['strength'] = S_y
+            fat_criteria['l']['strength'] = S_y
+        elif FATIGUE_LINE_TYPE == 'g' or FATIGUE_LINE_TYPE == 'ger':      # Modified Goodman or Gerber
             S_ut = dpf.FieldsFactory.CreateScalarField(numEntities=len(nodes), location='Nodal')
             S_ut.Unit = stress_unit_str
+            fat_criteria['g']['strength'] = S_ut
+            fat_criteria['ger']['strength'] = S_ut
         else:
             pass
         # Loop through each node, get the material and then place strengths in fields
@@ -334,27 +511,21 @@ for n in ns:
             treebody=ExtAPI.DataModel.Project.Model.Geometry.GetBody(body)
             nid_mat = treebody.Material
             S_e.Add(nd, [mats[nid_mat]['S_e']])
-            res[nid]['S_e field'] = S_e
-            if FATIGUE_LINE_TYPE.ToLower() == 's' or FATIGUE_LINE_TYPE.ToLower() == 'asme':      # Soderberg or ASME elliptic
+            if FATIGUE_LINE_TYPE == 's' or FATIGUE_LINE_TYPE == 'asme':      # Soderberg or ASME elliptic
                 S_y.Add(nd, [mats[nid_mat]['S_y']])
-                res[nid]['S_y field'] = S_y
-            elif FATIGUE_LINE_TYPE.ToLower() == 'g' or FATIGUE_LINE_TYPE.ToLower() == 'ger':      # Modified Goodman or Gerber
+            elif FATIGUE_LINE_TYPE == 'g' or FATIGUE_LINE_TYPE == 'ger':      # Modified Goodman or Gerber
                 S_ut.Add(nd, [mats[nid_mat]['S_ut']])
-                res[nid]['S_ut field'] = S_ut
-                
+
     """
     4.  Collect mean stress for all nodes in the data dictionary for future writing to CSV file.
     """
-    res[nid]['scoping_ids'] = mean_stress[0].ScopingIds   # mesh_scoping should not change
-    res[nid]['mean_stress_fc'] = {}
     for i, t in enumerate(ss_active_times):
         for nd in mean_stress[i].ScopingIds:
-            res[nid]['mean_stress_fc'][t] = mean_stress[i]
             data[cols[0]].append(ns_name)
             data[cols[1]].append(nid)
             data[cols[2]].append(nd)
             data[cols[3]].append(t)
-            data[cols[4]].append(time_scoping.Ids[i])
+            data[cols[4]].append(ss_time_scoping.Ids[i])
             data[cols[5]].append(mean_stress[i].GetEntityDataById(nd)[0])
     
     """
@@ -366,7 +537,6 @@ for n in ns:
             analysis = ExtAPI.DataModel.Project.Model.Analyses[a]
             solver_data = analysis.Solution.SolverData
             analysis_type = analysis.AnalysisType
-            analysis_settings = analysis.AnalysisSettings
             analysis_name = analysis.Name
                    
             # Result Data
@@ -388,15 +558,20 @@ for n in ns:
             elif str(analysis_type).ToLower() == 'responsespectrum':
                 time_ids = [1]
             active_times = [all_times[t-1] for t in time_ids]       # Solution times corresponding to available ss_time_ids
+            time_scoping = dpf.Scoping()
+            time_scoping.Location = 'Time'
             time_scoping.Ids = time_ids
             
             """
             5.1  Create a von Mises stress fields container called alternating stress.
             """
             # Create von Mises stress operator
+            seqv_op = dpf.operators.result.stress_von_mises()
             seqv_op.inputs.data_sources.Connect(data_source)
             seqv_op.inputs.time_scoping.Connect(time_scoping)
-            
+            seqv_op.inputs.requested_location.Connect('Nodal')
+            alt_stress = []
+
             # Get the (unscaled) alternating (equivalent) stress
             if str(analysis_type).ToLower() == 'responsespectrum':
                 col_name = 'Alt Eqv Stress ' + stress_unit
@@ -409,43 +584,48 @@ for n in ns:
             mesh_scoping.Ids = elem_ids
             mesh_scoping.Location = dpf.locations.elemental
             seqv_op.inputs.mesh_scoping.Connect(mesh_scoping)
-            alt_stress = seqv_op.outputs.fields_container.GetData()
+            alt_stress_temp = seqv_op.outputs.fields_container.GetData()
             # Remove fields with 0 entities by creating a new fields container
-            alt_stress_fc = remove_fields_with_zero_entities(alt_stress)
+            alt_stress_fc = remove_fields_with_zero_entities(alt_stress_temp)
             # Convert the alternating stress to desired stress units
+            unit_conv_fc_op = dpf.operators.math.unit_convert_fc()
+            unit_conv_fc_op.inputs.unit_name.Connect(stress_unit_str)
             unit_conv_fc_op.inputs.fields_container.Connect(alt_stress_fc)
             # Scale the alternating (von Mises) stress
             alt_stress_fc = unit_conv_fc_op.outputs.fields_container
-            alt_stress = alt_stress_fc.GetData()
+            alt_str_ss = alt_stress_fc.GetData()
+            alt_stress.append(alt_str_ss)
             for i, t in enumerate(ss_active_times):
-                for nd in mean_stress[0].ScopingIds:
-                    data[col_name].append(alt_stress[0].GetEntityDataById(nd)[0])
+                for nd in nodes:
+                    data[col_name].append(alt_str_ss[0].GetEntityDataById(nd)[0])
             
             """
-            for n in ns:
-                nid = n.ObjectId
-                mesh_scoping = dpf.Scoping()
-                mesh_scoping.Ids = res[nid]['Elements']
-                mesh_scoping.Location = dpf.locations.elemental
-                seqv_op.inputs.mesh_scoping.Connect(mesh_scoping)
-                vm_stress = seqv_op.outputs.fields_container.GetData()
-                # Remove fields with 0 entities by creating a new fields container
-                vm_stress_fc = remove_fields_with_zero_entities(vm_stress)
-                # Convert the von Mises stress to desired stress units
-                unit_conv_fc_op.inputs.fields_container.Connect(vm_stress_fc)
-                # Scale the von Mises stress
-                vm_stress_fc = unit_conv_fc_op.outputs.fields_container
-                vm_stress = vm_stress_fc.GetData()
-                res[nid]['alt_stress_fc'] = vm_stress_fc
-                # Add to data dictionary
+            5.2  If fatigue assessment is desired, compute factor of safety in fatigue based on fatigue line type.
+            """
+            if ASSESS_FATIGUE == 'y':
+                # Compute load line and fatigue safety factor
+                load_lines = []
+                load_lines.append(compute_load_line(alt_stress[0], mean_stress))
+                fatigue_safety_factors = []
+                fatigue_safety_factors.append(fatigue_safety_factor(S_e, fat_criteria[FATIGUE_LINE_TYPE]['strength'], alt_stress[0], mean_stress, fat_criterion=FATIGUE_LINE_TYPE))
+                # Get the (unscaled) alternating (equivalent) stress
+                if str(analysis_type).ToLower() == 'responsespectrum':
+                    col_name1 = 'Load Line'
+                    col_name2 = fat_criteria[FATIGUE_LINE_TYPE]['Name'] + ' Fatigue Safety Factor'
+                elif str(analysis_type).ToLower() == 'spectrum':
+                    col_name1 = '1-sigma Load Line'
+                    col_name2 = fat_criteria[FATIGUE_LINE_TYPE]['Name'] + ' 1-sigma Fatigue Safety Factor'
+                cols.append(col_name1)
+                cols.append(col_name2)
+                data[col_name1] = []
+                data[col_name2] = []
                 for i, t in enumerate(ss_active_times):
-                    for nd in res[nid]['scoping_ids']:
-                        data[col_name].append(vm_stress[0].GetEntityDataById(nd)[0])
-            """
-            
+                    for nd in nodes:
+                        data[col_name1].append(load_lines[0][0].GetEntityDataById(nd)[0])
+                        data[col_name2].append(fatigue_safety_factors[0][0].GetEntityDataById(nd)[0])
+
             # Create an alternating stress column for each scale factor if a RV analysis
             if str(analysis_type).ToLower() == 'spectrum':
-                alt_stress_scld = []
                 for k, sf in enumerate([2, 3]):
                     # Create scale operator
                     scale_op = dpf.operators.math.scale_fc()
@@ -455,9 +635,9 @@ for n in ns:
                         scale_op.inputs.weights.Connect(sf)       # 2025 R2
                     
                     # Add column to output data dictionary
-                    col_name = str(sf) + '-sigma Alt Eqv Stress ' + stress_unit
-                    cols.append(col_name)
-                    data[col_name] = []
+                    col_name1 = str(sf) + '-sigma Alt Eqv Stress ' + stress_unit
+                    cols.append(col_name1)
+                    data[col_name1] = []
                     
                     """
                     Get the von Mises stress at the corresponding node of the static structural analysis.  This is an 
@@ -466,11 +646,28 @@ for n in ns:
                     """
                     scale_op.inputs.fields_container.Connect(alt_stress_fc)
                     alt_stress_scld_fc = scale_op.outputs.fields_container
-                    alt_stress_scld.append(alt_stress_scld_fc.GetData())
+                    alt_stress_scld = alt_stress_scld_fc.GetData()
+                    alt_stress.append(alt_stress_scld)
                     for i, t in enumerate(ss_active_times):
-                        for nd in mean_stress[0].ScopingIds:
-                            data[col_name].append(alt_stress_scld[k][0].GetEntityDataById(nd)[0])
-
+                        for nd in nodes:
+                            data[col_name1].append(alt_stress_scld[0].GetEntityDataById(nd)[0])
+                    
+                    if ASSESS_FATIGUE == 'y':
+                        # Compute load lines and fatigue safety factors
+                        load_lines.append(compute_load_line(alt_stress_scld, mean_stress))
+                        fatigue_safety_factors.append(fatigue_safety_factor(S_e, fat_criteria[FATIGUE_LINE_TYPE]['strength'], alt_stress_scld, mean_stress, fat_criterion=FATIGUE_LINE_TYPE))
+                        # Get the (unscaled) alternating (equivalent) stress
+                        col_name1 = str(sf) + '-sigma Load Line'
+                        col_name2 = fat_criteria[FATIGUE_LINE_TYPE]['Name'] + ' ' + str(sf) + '-sigma Fatigue Safety Factor'
+                        cols.append(col_name1)
+                        cols.append(col_name2)
+                        data[col_name1] = []
+                        data[col_name2] = []
+                        for i, t in enumerate(ss_active_times):
+                            for nd in nodes:
+                                data[col_name1].append(load_lines[k + 1][0].GetEntityDataById(nd)[0])
+                                data[col_name2].append(fatigue_safety_factors[k + 1][0].GetEntityDataById(nd)[0])
+            
             x = datetime.datetime.now()
                 
             file_name_body = 'mean_alt_nodal_eqv_stress_summary--ns=' + ns_name + '--sys_name=' + analysis.Name + '--type=' + str(analysis_type) + '--' + x.strftime("%m-%d-%y")
