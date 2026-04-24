@@ -282,4 +282,6 @@ def after_post(this, solution):# Do not edit this line
     
     file_name_body = analysis_name + ' - type=' + str(analysis_type) + ' - Max_Eqv_Stress_' + x.strftime("%m") + "-" + x.strftime("%d") + "-" + x.strftime("%y")
     writeCSV(user_dir + '/' + file_name_body + ".csv", data, cols)
+    
+    model.ReleaseStreams()
 

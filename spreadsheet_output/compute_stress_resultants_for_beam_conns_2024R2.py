@@ -437,3 +437,5 @@ for a in analysisNumbers:
     print("Open File: " + chr(34) + user_dir + chr(92) + file_name_body + ".csv" + chr(34))
     print("Analysis Type: " + str(analysis_type)  + '\n')
     
+    model.ReleaseStreams()
+    

@@ -272,3 +272,5 @@ for a in analysisNumbers:
     
     print("[INFO] Process completed for " + analysis.Name)
     print("Open File: " + chr(34) + user_dir + chr(92) + file_name_body + ".csv" + chr(34) + '\n')
+    
+    model.ReleaseStreams()

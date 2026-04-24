@@ -378,6 +378,8 @@ if len(child_analysis_nums) > 0:
         data[analysis_name + ' Eqv Stress at Max SS Node ' + stress_unit] = []
         for nid in sorted(res.keys()):
             data[analysis_name + ' Eqv Stress at Max SS Node ' + stress_unit].append(res[nid][analysis_name + ' Eqv Stress at Max SS Node'])
+            
+        model.ReleaseStreams()
 
 
 x = datetime.datetime.now()
@@ -388,4 +390,4 @@ write_csv(user_dir + '/' + file_name_body + ".csv", data, cols)
 print("[INFO] Process completed for Max Eqv Stress results")
 print("Open File: " + chr(34) + user_dir + chr(92) + file_name_body + ".csv" + chr(34))
 
-
+ss_model.ReleaseStreams()

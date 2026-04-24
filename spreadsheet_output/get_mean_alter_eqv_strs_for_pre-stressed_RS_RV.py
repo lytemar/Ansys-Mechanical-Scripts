@@ -675,3 +675,7 @@ for n in ns:
                 
             print("[INFO] Process completed for Mean-Alternating Eqv Stress results")
             print("Open File: " + chr(34) + user_dir + chr(92) + file_name_body + ".csv" + chr(34))
+            
+            model.ReleaseStreams()
+            
+ss_model.ReleaseStreams()

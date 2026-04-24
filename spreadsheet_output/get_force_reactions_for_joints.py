@@ -134,7 +134,7 @@ for a in analysisNumbers:
     jointNames = [j.Name for j in joint_conns]
     jointTypes = [j.Type for j in joint_conns]
     
-   for j, eid in zip(joint_conns, jointElemIds):
+    for j, eid in zip(joint_conns, jointElemIds):
         if eid != 0:
             joints[eid]={}
             joints[eid]['Name'] = j.Name
@@ -274,3 +274,5 @@ for a in analysisNumbers:
     
     print("[INFO] Process completed for " + analysis.Name)
     print("Open File: " + chr(34) + user_dir + chr(92) + file_name_body + ".csv" + chr(34) + '\n')
+    
+    model.ReleaseStreams()
