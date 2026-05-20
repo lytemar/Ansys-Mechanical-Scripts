@@ -1,65 +1,79 @@
 """
-Retrieve Reaction Forces Values at all analysis times for all Force Reaction Probes.
-====================================================================================
+Retrieve Reaction Forces Values at all analysis times for Reaction Probes in Force Reactions Folder.
+====================================================================================================
 
 This script reads the Tabular Data for each force reaction probe and writes the data to a CSV file.
 
 """
-import wbjn
-import datetime
-import csv
-import mech_dpf
-import Ans.DataProcessing as dpf
-cmd = 'returnValue(GetUserFilesDirectory())'
-user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
-mech_dpf.setExtAPI(ExtAPI)
 
-################### Parameters ########################
-analysisNumbers = [0]       # List of analysis systems to apply this script
-################### End Parameters ########################
-
-
-def writeCSV(filename, data, cols):
+def after_post(this, solution):# Do not edit this line
     """
-    Function to write python data to a csv file.
-    
-    Parameters
-    ----------
-    filename : str
-        Filepath for the output file
-    data : dict
-        Data dictionary
-    cols : list of str
-        Column header names
-    
-    Returns
-    -------
-    None
+    Called after post processing.
+    Keyword Arguments : 
+        this -- the datamodel object instance of the python code object you are currently editing in the tree
+        solution -- Solution
     """
-    with open(filename, 'wb') as csvfile:
-        writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        writer.writerow(cols)
-        writer.writerows(zip(*[data[col] for col in cols]))
 
 
-def getTableData(t0,colNum):
-    t0.Activate()
-    tempTable = []
-    paneTabular=ExtAPI.UserInterface.GetPane(MechanicalPanelEnum.TabularData)
-    control = paneTabular.ControlUnknown
-    for row in range(1,control.RowsCount+1):
-        tempRow = []
-        for col in range(colNum,colNum+1):
-            cellText= control.cell(row ,col ).Text
-            tempRow.append(cellText)
-        tempTable.append(tempRow)
-    return tempTable
+    # To access properties created using the Property Provider, please use the following command.
+    # this.GetCustomPropertyByPath("your_property_group_name/your_property_name")
 
-
-for a in analysisNumbers:
-    analysis = Model.Analyses[a]
-    solver_data = analysis.Solution.SolverData
+    # To access scoping properties use the following to access geometry scoping and named selection respectively:
+    # this.GetCustomPropertyByPath("your_property_group_name/your_property_name/Geometry Selection")
+    # this.GetCustomPropertyByPath("your_property_group_name/your_property_name/Named Selection")
     
+    import wbjn
+    import datetime
+    import csv
+    import mech_dpf
+    import Ans.DataProcessing as dpf
+    import materials
+    cmd = 'returnValue(GetUserFilesDirectory())'
+    user_dir = wbjn.ExecuteCommand(ExtAPI, cmd)
+    mech_dpf.setExtAPI(ExtAPI)
+    analysis = solution.Parent
+    solver_data = solution.SolverData
+    analysis_type = analysis.AnalysisType
+    ANSYS_VER = str(ExtAPI.DataModel.Project.ProductVersion)
+
+
+    def writeCSV(filename, data, cols):
+        """
+        Function to write python data to a csv file.
+        
+        Parameters
+        ----------
+        filename : str
+            Filepath for the output file
+        data : dict
+            Data dictionary
+        cols : list of str
+            Column header names
+        
+        Returns
+        -------
+        None
+        """
+        with open(filename, 'wb') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(cols)
+            writer.writerows(zip(*[data[col] for col in cols]))
+
+
+    def getTableData(t0,colNum):
+        t0.Activate()
+        tempTable = []
+        paneTabular=ExtAPI.UserInterface.GetPane(MechanicalPanelEnum.TabularData)
+        control = paneTabular.ControlUnknown
+        for row in range(1,control.RowsCount+1):
+            tempRow = []
+            for col in range(colNum,colNum+1):
+                cellText= control.cell(row ,col ).Text
+                tempRow.append(cellText)
+            tempTable.append(tempRow)
+        return tempTable
+
+   
     # Get all force reaction probes
     ForceReactionCurrAnalysis = [child for child in analysis.Solution.Children if child.DataModelObjectCategory == DataModelObjectCategory.ForceReaction]
     

@@ -1,8 +1,8 @@
 """
-Retrieve Reaction Forces Values at all analysis times for all Force Reaction Probes.
-====================================================================================
+Retrieve Reaction Moment Values at all analysis times for all Moment Reaction Probes.
+=====================================================================================
 
-This script reads the Tabular Data for each force reaction probe and writes the data to a CSV file.
+This script reads the Tabular Data for each moment reaction probe and writes the data to a CSV file.
 
 """
 import wbjn
@@ -60,16 +60,16 @@ for a in analysisNumbers:
     analysis = Model.Analyses[a]
     solver_data = analysis.Solution.SolverData
     
-    # Get all force reaction probes
-    ForceReactionCurrAnalysis = [child for child in analysis.Solution.Children if child.DataModelObjectCategory == DataModelObjectCategory.ForceReaction]
+    # Get all moment reaction probes
+    MomentReactionCurrAnalysis = [child for child in analysis.Solution.Children if child.DataModelObjectCategory == DataModelObjectCategory.MomentReaction]
     
-    # Get force unit
-    force_unit = ExtAPI.DataModel.CurrentUnitFromQuantityName("Force")
+    # Get moment unit
+    moment_unit = ExtAPI.DataModel.CurrentUnitFromQuantityName("Moment")
     timeUnit = ExtAPI.DataModel.CurrentUnitFromQuantityName("Time")
     
     # Loop through all reaction probes and create a results dictionary
     res = {}
-    for result in ForceReactionCurrAnalysis:
+    for result in MomentReactionCurrAnalysis:
         result.Activate()
         rid = result.ObjectId
         res[rid] = {}
@@ -77,25 +77,25 @@ for a in analysisNumbers:
         timeCol = [a[0] for a in getTableData(result,2)]
         res[rid]['Time'] = [float(t) for t in timeCol[1:]]
         xReaction =[a[0] for a in getTableData(result,3)]
-        res[rid]['FX'] = [float(x) for x in xReaction[1:]]
+        res[rid]['MX'] = [float(x) for x in xReaction[1:]]
         yReaction =[a[0] for a in getTableData(result,4)]
-        res[rid]['FY'] = [float(y) for y in yReaction[1:]]
+        res[rid]['MY'] = [float(y) for y in yReaction[1:]]
         zReaction =[a[0] for a in getTableData(result,5)]
-        res[rid]['FZ'] = [float(z) for z in zReaction[1:]]
+        res[rid]['MZ'] = [float(z) for z in zReaction[1:]]
         totalReaction =[a[0] for a in getTableData(result,6)]
-        res[rid]['F_Total'] = [float(z) for z in totalReaction[1:]]
+        res[rid]['M_Total'] = [float(z) for z in totalReaction[1:]]
         matrix_full = [[timeCol[i], xReaction[i], yReaction[i], zReaction[i], totalReaction[i]] for i in range(len(timeCol))]
         
     # Create data dictionary to written to output csv file
     data = {}
     # Data column names
-    cols = ['Force Reaction Name',
-            'Force Reaction ID',
+    cols = ['Moment Reaction Name',
+            'Moment Reaction ID',
             'Time [' + timeUnit + ']',
-            'FX [' + force_unit + ']',
-            'FY [' + force_unit + ']',
-            'FZ [' + force_unit + ']',
-            'Total Force [' + force_unit + ']']
+            'MX [' + moment_unit + ']',
+            'MY [' + moment_unit + ']',
+            'MZ [' + moment_unit + ']',
+            'Total Moment [' + moment_unit + ']']
 
     for c in cols:
         data[c] = []
@@ -105,14 +105,14 @@ for a in analysisNumbers:
             data[cols[0]].append(res[rid]['Name'])
             data[cols[1]].append(rid)
             data[cols[2]].append(res[rid]['Time'][t])
-            data[cols[3]].append(res[rid]['FX'][t])
-            data[cols[4]].append(res[rid]['FY'][t])
-            data[cols[5]].append(res[rid]['FZ'][t])
-            data[cols[6]].append(res[rid]['F_Total'][t])
+            data[cols[3]].append(res[rid]['MX'][t])
+            data[cols[4]].append(res[rid]['MY'][t])
+            data[cols[5]].append(res[rid]['MZ'][t])
+            data[cols[6]].append(res[rid]['M_Total'][t])
 
     x = datetime.datetime.now()
     
-    file_name_body = analysis.Name + ' - Force_Reactions_' + x.strftime("%m-%d-%y")
+    file_name_body = analysis.Name + ' - Moment_Reactions_' + x.strftime("%m-%d-%y")
     writeCSV(user_dir + '/' + file_name_body + ".csv", data, cols)
     
     print("[INFO] Process completed for " + analysis.Name)

@@ -12,6 +12,9 @@ These scripts are inserted as Python Code results objects with *Target Callback 
   Retrieve the force and moment resultants for all joints using results for results file, tested in 2025 R1 on Static
   Structural, Random Vibration and Response Spectrum Analyses.
   
+- ### get_force_reaction_table_at_all_times.py
+  Read and output the force reaction components to spreadsheet for all reaction force probes for all analysis times.
+  
 - ### get_max_dir_acceleration_for_results_in_tree_folder.py
   Retrieve Maximum Value Over Time for Directional Acceleration Results in Tree Folder.
   
@@ -31,4 +34,7 @@ These scripts are inserted as Python Code results objects with *Target Callback 
 
 - ### get_max_total_deformation_for_results_in_tree_folder.py
   Retrieve Maximum Value Over Time for Total Deformation Results in Tree Folder.
+  
+- ### get_moment_reaction_table_at_all_times.py
+  Read and output the moment reaction components to spreadsheet for all reaction force probes for all analysis times.
   
