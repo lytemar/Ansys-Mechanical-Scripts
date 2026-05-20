@@ -281,7 +281,7 @@ def after_post(this, solution):# Do not edit this line
 
     x = datetime.datetime.now()
     
-    file_name_body = analysis.Name + ' - type=' + str(analysis_type) + ' - Joint_Reactions_' + x.strftime("%m") + "-" + x.strftime("%d") + "-" + x.strftime("%y")
+    file_name_body = analysis.Name + ' - type=' + str(analysis_type) + ' - Joint_Reactions_' + x.strftime("%m-%d-%y")
     writeCSV(user_dir + '/' + file_name_body + ".csv", data, cols)
     
     model.ReleaseStreams()
