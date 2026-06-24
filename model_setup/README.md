@@ -41,6 +41,9 @@ These scripts are run as Scripting objects from the Automation tab to automate r
   
 - ### create_named_sels_for_all_bodies.py
   Create a named selection for each body or multi-body part in the Geometry branch according to APDL naming rules.
+  
+- ### orient_csys_by_dir_vecs.py
+  Create a coordinate system with specified origin and oriented by specifying three orthogonal unit direction vectors.
 
 - ### remove_suffix_from_part_names.py
   Remove the suffix for part or body names after the `\` in the Geometry Branch, e.g. `Box\Solid` becomes `Box`.
